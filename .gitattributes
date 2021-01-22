@@ -1,0 +1,3 @@
+# Example of a `.gitattributes` file which removes notebook files from Linguist detection:
+*.ipynb linguist-detectable=false
+*.nb linguist-detectable=false
