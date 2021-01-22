@@ -26,7 +26,7 @@ struct Incompressibility <: AbstractConstraint
     inv_kappa      :: Float64
     incompressible :: Bool
 
-    field          :: NPWGrid{Float64}
+    field          :: PWGrid{Float64}
     system         :: Option{FieldSystem}
 
     function Compressibility(; inv_kappa::Real = 0.0)
@@ -46,7 +46,7 @@ struct Electroneutrality <: AbstractConstraint
     inv_kappa      :: Float64
     electroneutral :: Bool
 
-    field          :: NPWGrid{Float64}
+    field          :: PWGrid{Float64}
     system         :: Option{FieldSystem}
 
     function Electroneutrality(; inv_kappa::Real = 0.0)

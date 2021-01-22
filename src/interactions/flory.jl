@@ -97,7 +97,7 @@ function energy_bulk(itx::FloryInteraction)
     return energy
 end
 
-function add_potential!(itx::FloryInteraction, alpha::Integer, pot::NPWGrid)
+function add_potential!(itx::FloryInteraction, alpha::Integer, pot::PWGrid)
     @assert !isnothing(itx.system)
     sys = itx.system
     monomers = sys.monomers

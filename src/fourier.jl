@@ -3,7 +3,7 @@
 
 A helper struct that stores pre-allocated utilities
 for performing fast-Fourier transforms for a given grid-size.
-Allocates `ngrids` temporary complex `NPWGrid`s for use as
+Allocates `ngrids` temporary complex `PWGrid`s for use as
 temporary storage for in-place FFT operations.
 
 ### Constructors
@@ -13,8 +13,8 @@ FFTBuddy(npw; ngrids = 0, nthreads = 1)
 """
 struct FFTBuddy
     npw    :: NTuple{3, Int}
-    rgrids :: Vector{NPWGrid{Float64}}
-    kgrids :: Vector{NPWGrid{Complex{Float64}}}
+    rgrids :: Vector{PWGrid{Float64}}
+    kgrids :: Vector{PWGrid{Complex{Float64}}}
 
 	FT     :: FFTW.rFFTWPlan{Float64,-1,false,3}
     iFT    :: AbstractFFTs.ScaledPlan{Complex{Float64},FFTW.rFFTWPlan{Complex{Float64},1,false,3},Float64}

@@ -8,7 +8,7 @@ end
 
 ordered_pair(i::Integer, j::Integer) = i < j ? (i, j) : (j, i)
 
-num_dims(grid::NPWGrid) = num_dims(size(grid))
+num_dims(grid::PWGrid) = num_dims(size(grid))
 
 function num_dims(npw::NTuple{3,<:Integer})
     keep_dims = Tuple(i for i in npw if i != 1)
@@ -130,7 +130,7 @@ using a cubic b-spline method.
 If the interpolation is performed to an output shape of different dimension,
 the input grid is either copied or sliced, and the output grid may be inaccurate.
 """
-function interpolate_grid(grid::NPWGrid{TF}, outshape::NTuple{3,<:Integer}) where {TF <: Real}
+function interpolate_grid(grid::PWGrid{TF}, outshape::NTuple{3,<:Integer}) where {TF <: Real}
     inshape = size(grid)            
     grid_sq = squeeze(grid)
     itp = interpolate(grid_sq, BSpline(Cubic(Line(OnGrid()))) )

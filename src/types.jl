@@ -35,13 +35,13 @@ abstract type AbstractFieldUpdater end
 #==============================================================================#
 
 # 3D array grid alias
-const NPWGrid{T} = Array{T, 3}
+const PWGrid{T} = Array{T, 3}
 
 # Nullable union holder
 const Option{T} = Union{Nothing,T}
 
 # Available methods from LineSearches.jl package
-const LSUnion =  Union{MoreThuente, BackTracking, HagerZhang, StrongWolfe}
+const LSUnion = Union{MoreThuente, BackTracking, HagerZhang, StrongWolfe}
 
 # 3D vectors and matrices
 const SVec3D{T} = SVector{3,T}

@@ -17,10 +17,10 @@ mutable struct GaussianEdwards <: AbstractInteraction
     pols   :: Vector{Multiblock}
     salts  :: Vector{Point}
 
-    PP     :: NPWGrid{Float64}
-    PS     :: NPWGrid{Float64}
-    DPP    :: NPWGrid{Float64}
-    DPS    :: NPWGrid{Float64}
+    PP     :: PWGrid{Float64}
+    PS     :: PWGrid{Float64}
+    DPP    :: PWGrid{Float64}
+    DPS    :: PWGrid{Float64}
     system :: Option{FieldSystem}
 
     function GaussianEdwards(; lB::Real = 2.287)
@@ -110,7 +110,7 @@ function energy_bulk(itx::GaussianEdwards)
     return energy
 end
 
-function add_potential!(itx::GaussianEdwards, alpha::Integer, pot::NPWGrid)
+function add_potential!(itx::GaussianEdwards, alpha::Integer, pot::PWGrid)
     @assert !isnothing(itx.system)
     sys = itx.system
     monomers = sys.monomers

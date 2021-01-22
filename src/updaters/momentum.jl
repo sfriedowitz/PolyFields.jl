@@ -10,10 +10,10 @@ mutable struct MomentumUpdater <: AbstractFieldUpdater
 	beta1  :: Float64
 	beta2  :: Float64
 
-	step   :: Dict{Int,NPWGrid{Float64}} # Final step for each method
-	mt     :: Dict{Int,NPWGrid{Float64}} # First moment of gradient moving average
-	vt     :: Dict{Int,NPWGrid{Float64}} # Second moment of gradient moving average
-	temp   :: Dict{Int,NPWGrid{Float64}}
+	step   :: Dict{Int,PWGrid{Float64}} # Final step for each method
+	mt     :: Dict{Int,PWGrid{Float64}} # First moment of gradient moving average
+	vt     :: Dict{Int,PWGrid{Float64}} # Second moment of gradient moving average
+	temp   :: Dict{Int,PWGrid{Float64}}
 
 	function MomentumUpdater(;  
 		method::AbstractString = "MOM", 

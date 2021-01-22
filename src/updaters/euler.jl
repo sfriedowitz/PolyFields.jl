@@ -10,7 +10,7 @@ Available options for `method` include:
 struct EulerUpdater <: AbstractFieldUpdater
 	method :: String
 	lam    :: Float64
-	temp   :: Dict{Int,NPWGrid{Float64}} # Used as pre-allocated storage for half-steps
+	temp   :: Dict{Int,PWGrid{Float64}} # Used as pre-allocated storage for half-steps
 
 	function EulerUpdater(; method::AbstractString = "PECE", lam::Real = 0.05)
 		method = strip(uppercase(method))

@@ -1,7 +1,7 @@
 # PolyFields.jl
 
 PolyFields is a minimal Julia implementation of polymer self-consistent field theory,
-as described in the extesnive monograph
+as described in the extensive monograph
 "Fredrickson, G. (2005). The Equilibrium Theory of Inhomogeneous Polymers."
 Core implementation details are inspired by the Fortran package [PSCF](https://github.com/dmorse/pscf).
 

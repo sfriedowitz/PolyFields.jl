@@ -8,7 +8,7 @@
 Perform a line-search provided by `ls` to determine the optimal step size
 to reduce the system free energy in the direction of `steps`.
 """
-function perform_line_search(ls, sys::FieldSystem, a0::Real, steps::Dict{TK,TV}, temp::Dict{TK,TV}) where {TK<:Integer,TV<:NPWGrid}
+function perform_line_search(ls, sys::FieldSystem, a0::Real, steps::Dict{TK,TV}, temp::Dict{TK,TV}) where {TK<:Integer,TV<:PWGrid}
 	# Univariate functions
 	phi(a) = phi_ls(a, sys, steps, temp)
 	dphi(a) = dphi_ls(a, sys, steps, temp)
@@ -30,7 +30,7 @@ end
 #	We thus allow the system density and resiudals to live in a modified state between evals at the new step point
 #	This means that `steps` should not be a reference to `sys.residuals`, as it would be modified in the linesearch
 	
-function phi_ls(a::Real, sys::FieldSystem, steps::Dict{TK,TV}, temp::Dict{TK,TV}) where {TK<:Integer,TV<:NPWGrid}
+function phi_ls(a::Real, sys::FieldSystem, steps::Dict{TK,TV}, temp::Dict{TK,TV}) where {TK<:Integer,TV<:PWGrid}
 	# Evaluate the objective for a given step
 	# Steps:
 
@@ -55,7 +55,7 @@ function phi_ls(a::Real, sys::FieldSystem, steps::Dict{TK,TV}, temp::Dict{TK,TV}
 	return fx
 end
 
-function dphi_ls(a::Real, sys::FieldSystem, steps::Dict{TK,TV}, temp::Dict{TK,TV}) where {TK<:Integer,TV<:NPWGrid}
+function dphi_ls(a::Real, sys::FieldSystem, steps::Dict{TK,TV}, temp::Dict{TK,TV}) where {TK<:Integer,TV<:PWGrid}
 	# Evaluate the gradient at the new location
 	# Return the dot product of the gradient and the step
 	# Steps:
@@ -80,7 +80,7 @@ function dphi_ls(a::Real, sys::FieldSystem, steps::Dict{TK,TV}, temp::Dict{TK,TV
 	return d
 end
 
-function phi_dphi_ls(a::Real, sys::FieldSystem, steps::Dict{TK,TV}, temp::Dict{TK,TV}) where {TK<:Integer,TV<:NPWGrid}
+function phi_dphi_ls(a::Real, sys::FieldSystem, steps::Dict{TK,TV}, temp::Dict{TK,TV}) where {TK<:Integer,TV<:PWGrid}
 	# Return both objective and gradient dot product at new step
 	# Steps:
 

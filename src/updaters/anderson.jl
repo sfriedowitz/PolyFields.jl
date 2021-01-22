@@ -17,8 +17,8 @@ mutable struct AndersonUpdater <: AbstractFieldUpdater
     lam_euler  :: Float64
     setup      :: Bool
 
-    res_hist   :: Vector{Dict{Int,NPWGrid{Float64}}} # Residual history for each field
-    field_hist :: Vector{Dict{Int,NPWGrid{Float64}}} # Omega field history
+    res_hist   :: Vector{Dict{Int,PWGrid{Float64}}} # Residual history for each field
+    field_hist :: Vector{Dict{Int,PWGrid{Float64}}} # Omega field history
 
     # Coefficient vectors, allocated at each step
     Umn        :: Matrix{Float64}
@@ -26,8 +26,8 @@ mutable struct AndersonUpdater <: AbstractFieldUpdater
     Cn         :: Vector{Float64}
 
     # Step directions
-    WW         :: NPWGrid{Float64}
-    DD         :: NPWGrid{Float64}
+    WW         :: PWGrid{Float64}
+    DD         :: PWGrid{Float64}
 
     function AndersonUpdater(; nhist::Integer = 50, iter_euler::Integer = 1, lam_euler::Real = 0.01)
         # Must take at least 1 initial step before mixing

@@ -10,9 +10,9 @@ mutable struct ConjGradUpdater <: AbstractFieldUpdater
 	lam  :: Float64
 	d0   :: Float64
 
-    pv   :: Dict{Int,NPWGrid{Float64}} # Current steps
-	res0 :: Dict{Int,NPWGrid{Float64}} # Previous gradients
-	temp :: Dict{Int,NPWGrid{Float64}} # Temp storage of fields during line-search
+    pv   :: Dict{Int,PWGrid{Float64}} # Current steps
+	res0 :: Dict{Int,PWGrid{Float64}} # Previous gradients
+	temp :: Dict{Int,PWGrid{Float64}} # Temp storage of fields during line-search
 
 	function ConjGradUpdater(; ls, lam::Real = 0.1, nu::Real = 0.1, lmin::Real = 1e-3, lrat::Real = 10.0)
 	 	return new(ls, nu, lmin, lrat, lam, 0.0, Dict(), Dict(), Dict())
@@ -39,7 +39,7 @@ end
 
 #==============================================================================#
 
-function pr_update(curr::Dict{TK,TV}, prev::Dict{TK,TV}, epsilon = eps(Float64)) where {TK<:Integer,TV<:NPWGrid}
+function pr_update(curr::Dict{TK,TV}, prev::Dict{TK,TV}, epsilon = eps(Float64)) where {TK<:Integer,TV<:PWGrid}
 	num = dot_dicts(curr, curr) - dot_dicts(curr, prev)
 	denom = dot_dicts(prev, prev) + epsilon
 	return num / denom

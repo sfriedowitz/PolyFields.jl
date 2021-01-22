@@ -28,10 +28,10 @@ mutable struct Multiblock <: AbstractSpecies
 
 	# SCF fields
 	Q             :: Float64
-	q             :: Vector{NPWGrid{Float64}}
-	qc            :: Vector{NPWGrid{Float64}}
-	density       :: Dict{Int,NPWGrid{Float64}} # Stores density per monomer type
-	density_block :: Dict{Int,NPWGrid{Float64}} # Stores density per block idx
+	q             :: Vector{PWGrid{Float64}}
+	qc            :: Vector{PWGrid{Float64}}
+	density       :: Dict{Int,PWGrid{Float64}} # Stores density per monomer type
+	density_block :: Dict{Int,PWGrid{Float64}} # Stores density per block idx
     system        :: Option{FieldSystem}
 end
 

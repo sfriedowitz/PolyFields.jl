@@ -14,7 +14,7 @@ mutable struct Point <: AbstractSpecies
 
 	# SCF fields
 	Q       :: Float64
-	density :: Dict{Int,NPWGrid{Float64}}
+	density :: Dict{Int,PWGrid{Float64}}
 	system  :: Option{FieldSystem}
 
 	function Point(mon::Monomer; name::String = "")

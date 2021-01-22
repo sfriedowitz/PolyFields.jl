@@ -34,19 +34,19 @@ mutable struct FieldSystem
 
 	# Field grids for each monomer type
 	monomers     :: Dict{Int,Monomer}
-	fields       :: Dict{Int,NPWGrid{Float64}}
-	potentials   :: Dict{Int,NPWGrid{Float64}}
-	residuals    :: Dict{Int,NPWGrid{Float64}}
-	density      :: Dict{Int,NPWGrid{Float64}}
+	fields       :: Dict{Int,PWGrid{Float64}}
+	potentials   :: Dict{Int,PWGrid{Float64}}
+	residuals    :: Dict{Int,PWGrid{Float64}}
+	density      :: Dict{Int,PWGrid{Float64}}
 	density_bulk :: Dict{Int,Float64}
 
 	# Constraints
 	comp         :: Compressibility
 	elec         :: Electroneutrality
-	eta          :: NPWGrid{Float64}
-	kappa        :: NPWGrid{Float64}
-	density_sum  :: NPWGrid{Float64}
-	charge_sum   :: NPWGrid{Float64}
+	eta          :: PWGrid{Float64}
+	kappa        :: PWGrid{Float64}
+	density_sum  :: PWGrid{Float64}
+	charge_sum   :: PWGrid{Float64}
 
 	# Species, interactions, constraints
 	species      :: Vector{AbstractSpecies}

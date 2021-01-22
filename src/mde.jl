@@ -16,10 +16,10 @@ struct PseudoSpectralSolver
 	method :: String
 
 	# Operator grids for solving MDE
-	LW1    :: NPWGrid{Float64}
-	LW2    :: NPWGrid{Float64}
-	LD1    :: NPWGrid{Float64}
-	LD2    :: NPWGrid{Float64}
+	LW1    :: PWGrid{Float64}
+	LW2    :: PWGrid{Float64}
+	LD1    :: PWGrid{Float64}
+	LD2    :: PWGrid{Float64}
 end
 
 #==============================================================================#
@@ -57,7 +57,7 @@ show(io::IO, solver::PseudoSpectralSolver) = @printf(io, "PseudoSpectralSolver(n
 Update differential operators for a given set of `omega` and `ksq` grids
 with specified monomer size and chain length parameters.
 """
-function update_operators!(solver::PseudoSpectralSolver, omega::NPWGrid, ksq::NPWGrid, vbar::Real, b::Real, ds::Real)
+function update_operators!(solver::PseudoSpectralSolver, omega::PWGrid, ksq::PWGrid, vbar::Real, b::Real, ds::Real)
 	@assert size(omega) == solver.npw
 	@assert size(ksq) == size(solver.LD1)
 
@@ -79,7 +79,7 @@ end
 Take one step forward along the chain propagator from input `qin` to output `qout`.
 Utilizes pre-allocated fast-Fourier transforms of the correct dimension from the provided `FFTBuddy`.
 """
-function propagate!(solver::PseudoSpectralSolver, fft::FFTBuddy, qin::NPWGrid, qout::NPWGrid)
+function propagate!(solver::PseudoSpectralSolver, fft::FFTBuddy, qin::PWGrid, qout::PWGrid)
 	@assert solver.npw == fft.npw
 
 	# Offload params

@@ -29,4 +29,4 @@ energy_bulk(itx::AbstractInteraction) = nothing
 
 Add the potential contribution for species `alpha` to the array grid `pot`.
 """
-add_potential!(itx::AbstractInteraction, alpha::Integer, pot::NPWGrid) = nothing
+add_potential!(itx::AbstractInteraction, alpha::Integer, pot::PWGrid) = nothing

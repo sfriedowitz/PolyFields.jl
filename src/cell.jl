@@ -30,8 +30,8 @@ mutable struct Cell
     dGG     :: Array{Float64,3} # Derivatives of b_i ⋅ b_j
 
     # Grids for k-vectors
-    ksq     :: NPWGrid{Float64}
-    dksq    :: Vector{NPWGrid{Float64}}
+    ksq     :: PWGrid{Float64}
+    dksq    :: Vector{PWGrid{Float64}}
 
     function Cell(dim::Integer, params::Vector{<:Real})
         cell = new()
@@ -46,7 +46,7 @@ mutable struct Cell
         cell.dGG = zeros(3, 3, nparam)
 
         # Add the k-grids
-        cell.ksq = NPWGrid{Float64}(undef, 0, 0, 0)
+        cell.ksq = PWGrid{Float64}(undef, 0, 0, 0)
         cell.dksq = []
 
         # Update the basis information to make current before return

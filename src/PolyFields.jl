@@ -17,7 +17,7 @@ module PolyFields
 
 # Types
 export AbstractSpecies, AbstractConstraint, AbstractInteraction, AbstractFieldUpdater
-export NPWGrid, Cell, Cell1D, Cell2D, Cell3D, FFTBuddy, PseudoSpectralSolver
+export PWGrid, Cell, Cell1D, Cell2D, Cell3D, FFTBuddy, PseudoSpectralSolver
 export Monomer, Point, Homopolymer, Diblock, Multiblock
 export FloryInteraction, GaussianEdwards
 export Ensemble, Canonical, Grand, Compressibility, Electroneutrality, FieldSystem, SCFTOptions
