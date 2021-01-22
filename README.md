@@ -1,8 +1,9 @@
 # PolyFields.jl
 
-PolyFields is a Julia package for performing field-theoretic calculations of various complex fluid systems.
-The package implements a variety of the theories and methods described in the extensive monograph
+PolyFields is a minimal Julia implementation of polymer self-consistent field theory,
+as described in the extesnive monograph
 "Fredrickson, G. (2005). The Equilibrium Theory of Inhomogeneous Polymers."
+Core implementation details are inspired by the Fortran package PSCF[https://github.com/dmorse/pscf].
 
 Currently, the package only has the capability of solving the self-consistent field theory (SCFT) equations,
 corresponding to a mean-field solution of the underlying field-theoretic partition function.
@@ -15,19 +16,6 @@ The basic structs required for a field-theoretic simulation can be created as fo
 
 ```julia
 using PolyFields
-
-# Construct cell and system
-npw = (64, 1, 1)
-cell = Cell1D(10.0)
-system = FieldSystem(npw, cell)
-
-# Create monomers and species
-monomer = Monomer(1, 1.0)
-species = Homopolymer(mon, 100, 1.0)
-
-# Add the monomers and species to the system
-add_monomer!(system, monomer)
-add_species!(system, species)
 ```
 
 ## URGENT TODO
