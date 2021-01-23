@@ -2,32 +2,31 @@
 # Utility functions
 #==============================================================================#
 
+ordered(i::Integer, j::Integer) = i <= j ? (i, j) : (j, i)
+
+nsingledims(dims::NTuple{N,<:Integer}) where N = sum(dims .== 1)
+nmultidims(dims::NTuple{N,<:Integer}) where N = sum(dims .> 1)
+
+singledims(dims::NTuple{N,<:Integer}) where N = findall(dims .== 1)
+multidims(dims::NTuple{N,<:Integer}) where N = findall(dims .> 1)
+
+function squeeze(A::AbstractArray)
+    inshape = size(A)
+    multi = multidims(inshape)
+    outshape = inshape[multi]
+    return reshape(A, outshape)
+end
+
 function determine_nthreads(size::Integer, serial_cut::Integer = 20000)
     return min(Threads.nthreads(), 1 + size÷serial_cut)
 end
 
-ordered_pair(i::Integer, j::Integer) = i < j ? (i, j) : (j, i)
-
-num_dims(grid::PWGrid) = num_dims(size(grid))
-
-function num_dims(npw::NTuple{3,<:Integer})
-    keep_dims = Tuple(i for i in npw if i != 1)
-    return length(keep_dims)
-end
-
-function squeeze(A::AbstractArray)
-     keep_dims = Tuple(i for i in size(A) if i != 1)
-     return reshape(A, keep_dims)
-end
-
 #==============================================================================#
 
+"""
+
+"""
 function copy_dict!(src::Dict{TK,TV}, dst::Dict{TK,TV}) where {TK,TV<:AbstractArray}
-    # Copies the contents of dictionary src into dst
-    # If key from src does not exist in dst
-    #   values of src are deepcopied into dst
-    # If key does exist, dst is modified in place
-    # Assumes array value sizes are commensurate between src and dst
     for (key, val) in src
         if !haskey(dst, key)
             dst[key] = deepcopy(val)
@@ -38,6 +37,9 @@ function copy_dict!(src::Dict{TK,TV}, dst::Dict{TK,TV}) where {TK,TV<:AbstractAr
     return nothing
 end
 
+"""
+
+"""
 function dot_dicts(a::Dict{TK,TV}, b::Dict{TK,TV}) where {TK,TV<:AbstractArray}
     # Performs a dot product between all arrays in a and b dictionaries
     d = 0.0
@@ -52,15 +54,11 @@ end
 #==============================================================================#
 
 """
-    triclinic_vectors(a, b, c, alpha, beta, gamma)
+    make_basis(a, b, c, alpha, beta, gamma)
 
 Return a basis matrix for given unit cell side lengths and angles.
 """
-function triclinic_vectors(a::Real, b::Real, c::Real, alpha::Real, beta::Real, gamma::Real)
-    @assert a > 0 && b > 0 && c > 0
-    @assert alpha > 0 && beta > 0 && gamma > 0
-    @assert alpha < pi && beta < pi && gamma < pi
-
+function make_basis(a::Real, b::Real, c::Real, alpha::Real, beta::Real, gamma::Real)
     p2 = pi/2
     if isapprox(alpha,p2) && isapprox(beta,p2) && isapprox(gamma,p2)
         # We have an orthogonal box
@@ -99,13 +97,13 @@ function triclinic_vectors(a::Real, b::Real, c::Real, alpha::Real, beta::Real, g
 end
 
 """
-    triclinic_angles(R_basis)
+    basis_dimensions(basis)
 
-Return a set of unit cell side lengths and angles for a real basis matrix `R`.
+Return a vector of unit cell side lengths and angles for a basis matrix in real space.
 """
-function triclinic_angles(R::Mat3D)
-    lx, ly, lz = R[1,1], R[2,2], R[3,3]
-    xy, xz, yz = R[1,2], R[1,3], R[2,3]
+function basis_dimensions(basis::Mat3D)
+    lx, ly, lz = basis[1,1], basis[2,2], basis[3,3]
+    xy, xz, yz = basis[1,2], basis[1,3], basis[2,3]
 
     a = lx
     b = sqrt(ly^2 + xy^2)
@@ -115,11 +113,10 @@ function triclinic_angles(R::Mat3D)
     beta  = acos(xz/c)
     gamma = acos(xy/b)
 
-    lengths = @SVector [a, b, c]
-    angles = @SVector [alpha, beta, gamma]
-
-    return lengths, angles
+    return @SVector [a, b, c, alpha, beta, gamma]
 end
+
+#==============================================================================#
 
 """
     interpolate_grid(grid{TF}, outshape) where {TF <: Real}
@@ -130,14 +127,15 @@ using a cubic b-spline method.
 If the interpolation is performed to an output shape of different dimension,
 the input grid is either copied or sliced, and the output grid may be inaccurate.
 """
-function interpolate_grid(grid::PWGrid{TF}, outshape::NTuple{3,<:Integer}) where {TF <: Real}
-    inshape = size(grid)            
-    grid_sq = squeeze(grid)
-    itp = interpolate(grid_sq, BSpline(Cubic(Line(OnGrid()))) )
-    itp_dim = length(size(itp))
-    
-    in_single = Tuple(i for i = 1:3 if inshape[i] == 1)
-    out_single = Tuple(i for i = 1:3 if outshape[i] == 1)
+function interpolate_grid(grid::FieldGrid{TF}, outshape::NTuple{3,<:Integer}) where {TF <: Real}
+    inshape = size(grid) 
+
+    sqz = squeeze(grid)
+    itp = interpolate(sqz, BSpline(Cubic(Line(OnGrid()))))
+    itp_dim = ndims(itp)
+
+    in_single = singledims(inshape)
+    out_single = singledims(outshape)
     if in_single != out_single
         @warn "Interpolating to different dimensions -- output array may be inaccurate."
     end
@@ -150,7 +148,7 @@ function interpolate_grid(grid::PWGrid{TF}, outshape::NTuple{3,<:Integer}) where
     end
     
     # Loop along and interpolate
-    itp_grid = zeros(TF, outshape...)
+    itp_grid = zeros(TF, outshape)
     for dx = 1:outshape[1]
         hx = hooks[1][dx]
 

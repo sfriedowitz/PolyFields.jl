@@ -75,7 +75,7 @@ function load_fields(fpath::AbstractString)
     field_type = string(sys_lines[4][10])
 
     # Create dictionary of fields
-    fields = Dict{Int, PWGrid{Float64}}()
+    fields = Dict{Int, FieldGrid{Float64}}()
     for mid in mids
         if field_type == "R"
             fields[mid] = zeros(Float64, npw)

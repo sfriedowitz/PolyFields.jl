@@ -1,5 +1,5 @@
 """
-    mutable struct FloryInteraction <: AbstractInteraction
+    mutable struct ChiInteraction <: AbstractInteraction
 
 An interaction representing a Flory-Huggins ``\\chi``-interaction
 between different monomer types.
@@ -9,28 +9,28 @@ The value of the ``\\chi``-parameter is specified with the `set_interaction!` me
 
 ### Constructors
 ```
-FloryInteraction()
+ChiInteraction()
 ```
 """
-mutable struct FloryInteraction <: AbstractInteraction
+mutable struct ChiInteraction <: AbstractInteraction
     mids   :: Set{Int}
     chis   :: Dict{NTuple{2,Int}, Float64}
     system :: Option{FieldSystem}
-    FloryInteraction() = new(Set(), Dict(), nothing)
+    ChiInteraction() = new(Set(), Dict(), nothing)
 end
 
 #==============================================================================#
 # Methods
 #==============================================================================#
 
-show(io::IO, itx::FloryInteraction) = @printf(io, "FloryInteraction(%d monomers, %s pairs)", length(itx.ids), length(itx.chis))
+Base.show(io::IO, itx::ChiInteraction) = @printf(io, "ChiInteraction(%d monomers, %s pairs)", length(itx.ids), length(itx.chis))
 
-function setup!(itx::FloryInteraction, sys::FieldSystem)
+function setup!(itx::ChiInteraction, sys::FieldSystem)
     itx.system = sys
     return nothing
 end
 
-function set_interaction!(itx::FloryInteraction, amon::Monomer, bmon::Monomer, chi::Real)
+function set_interaction!(itx::ChiInteraction, amon::Monomer, bmon::Monomer, chi::Real)
     @assert amon.id != bmon.id
 
     mids = ordered_pair(amon.id, bmon.id)
@@ -47,7 +47,7 @@ end
 
 #==============================================================================#
 
-function energy(itx::FloryInteraction)
+function energy(itx::ChiInteraction)
     @assert !isnothing(itx.system)
     sys = itx.system
     monomers = sys.monomers
@@ -73,7 +73,7 @@ function energy(itx::FloryInteraction)
     return energy / num_grid(sys)
 end 
 
-function energy_bulk(itx::FloryInteraction)
+function energy_bulk(itx::ChiInteraction)
     @assert !isnothing(itx.system)
     sys = itx.system
     monomers = sys.monomers
@@ -97,7 +97,7 @@ function energy_bulk(itx::FloryInteraction)
     return energy
 end
 
-function add_potential!(itx::FloryInteraction, alpha::Integer, pot::PWGrid)
+function add_potential!(itx::ChiInteraction, alpha::Integer, pot::FieldGrid)
     @assert !isnothing(itx.system)
     sys = itx.system
     monomers = sys.monomers

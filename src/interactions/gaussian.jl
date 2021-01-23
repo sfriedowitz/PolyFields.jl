@@ -17,10 +17,10 @@ mutable struct GaussianEdwards <: AbstractInteraction
     pols   :: Vector{Multiblock}
     salts  :: Vector{Point}
 
-    PP     :: PWGrid{Float64}
-    PS     :: PWGrid{Float64}
-    DPP    :: PWGrid{Float64}
-    DPS    :: PWGrid{Float64}
+    PP     :: FieldGrid{Float64}
+    PS     :: FieldGrid{Float64}
+    DPP    :: FieldGrid{Float64}
+    DPS    :: FieldGrid{Float64}
     system :: Option{FieldSystem}
 
     function GaussianEdwards(; lB::Real = 2.287)
@@ -34,7 +34,7 @@ end
 # Methods
 #==============================================================================#
 
-show(io::IO, itx::GaussianEdwards) = @printf(io, "GaussianEdwards(lB = %.3g)", itx.lB)
+Base.show(io::IO, itx::GaussianEdwards) = @printf(io, "GaussianEdwards(lB = %.3g)", itx.lB)
 
 function setup!(itx::GaussianEdwards, sys::FieldSystem)
     itx.system = sys
@@ -110,7 +110,7 @@ function energy_bulk(itx::GaussianEdwards)
     return energy
 end
 
-function add_potential!(itx::GaussianEdwards, alpha::Integer, pot::PWGrid)
+function add_potential!(itx::GaussianEdwards, alpha::Integer, pot::FieldGrid)
     @assert !isnothing(itx.system)
     sys = itx.system
     monomers = sys.monomers

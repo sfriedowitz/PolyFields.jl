@@ -3,11 +3,9 @@
 #==============================================================================#
 
 """
-	Multiblock(mon_block, N_block, b_block, Ns; name = "")
-	Homopolymer(mon, N, b, Ns; name = "")
-	Diblock(mon1, mon2, N, f1, b1, b2, Ns; name = "")
+	mutable struct Multiblock <: AbstractSpecies
 
-Construct a `Multiblock` polymer species with given block attributes.
+A species representing a linear polymer chain with variable chain length and number of blocks.
 """
 mutable struct Multiblock <: AbstractSpecies
 	name          :: String
@@ -16,7 +14,7 @@ mutable struct Multiblock <: AbstractSpecies
 	mid_map       :: Dict{Int,Vector{Int}} # Monomer id --> block idx, blocks which contain a given mid
 
 	# Chain structure
-    N             :: Integer
+    N             :: Int
     N_block       :: Vector{Int}
     Nref          :: Float64
     Nref_block    :: Vector{Float64}
@@ -28,10 +26,10 @@ mutable struct Multiblock <: AbstractSpecies
 
 	# SCF fields
 	Q             :: Float64
-	q             :: Vector{PWGrid{Float64}}
-	qc            :: Vector{PWGrid{Float64}}
-	density       :: Dict{Int,PWGrid{Float64}} # Stores density per monomer type
-	density_block :: Dict{Int,PWGrid{Float64}} # Stores density per block idx
+	q             :: Vector{FieldGrid{Float64}}
+	qc            :: Vector{FieldGrid{Float64}}
+	density       :: Dict{Int,FieldGrid{Float64}} # Stores density per monomer type
+	density_block :: Dict{Int,FieldGrid{Float64}} # Stores density per block idx
     system        :: Option{FieldSystem}
 end
 
@@ -44,7 +42,7 @@ function Multiblock(mon_block::AbstractVector{Monomer}, N_block::AbstractVector{
     @assert length(mon_block) == length(N_block) == length(b_block)
 
     # Setup bmonomer info and block-type mappings
-    mid_block = [mon.id for mon in mon_block]
+    mid_block = [mon.id for mon in block_monomers]
     mid_map = Dict()
     for (iblk, mid) in enumerate(mid_block)
         if !haskey(mid_map, mid)
@@ -91,7 +89,7 @@ end
 # Methods
 #==============================================================================#
 
-function show(io::IO, chain::Multiblock)
+function Base.show(io::IO, chain::Multiblock)
     if num_blocks(chain) == 1
         @printf(io, "Homopolymer(mid = %d, N = %d)", chain.mids[1], chain.N)
     elseif num_blocks(chain) == 2
@@ -102,9 +100,9 @@ function show(io::IO, chain::Multiblock)
     end
 end
 
-num_blocks(chain::Multiblock) = length(chain.N_block)
+nblocks(species::Multiblock) = length(species.N_blocks)
 
-function monomer_fraction(chain::Multiblock, mid::Integer)
+function monomer_fraction(species::Multiblock, mid::Integer)
 	# Check if mid present
 	if !has_monomer(chain, mid); return 0.0; end
 	# It has the mid, so calculate fraction

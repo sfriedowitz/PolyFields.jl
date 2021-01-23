@@ -16,15 +16,11 @@ struct PseudoSpectralSolver
 	method :: String
 
 	# Operator grids for solving MDE
-	LW1    :: PWGrid{Float64}
-	LW2    :: PWGrid{Float64}
-	LD1    :: PWGrid{Float64}
-	LD2    :: PWGrid{Float64}
+	LW1    :: FieldGrid{Float64}
+	LW2    :: FieldGrid{Float64}
+	LD1    :: FieldGrid{Float64}
+	LD2    :: FieldGrid{Float64}
 end
-
-#==============================================================================#
-# Constructors
-#==============================================================================#
 
 function PseudoSpectralSolver(npw::NTuple{3,<:Integer}; method::AbstractString = "RK2")
 	method = strip(uppercase(method))
@@ -47,17 +43,15 @@ PseudoSpectralSolver(Nx::Integer, Ny::Integer, Nz::Integer; kwargs...) = PseudoS
 # Methods
 #==============================================================================#
 
-show(io::IO, solver::PseudoSpectralSolver) = @printf(io, "PseudoSpectralSolver(npw = %s)", solver.npw)
-
-#==============================================================================#
+Base.show(io::IO, solver::PseudoSpectralSolver) = @printf(io, "PseudoSpectralSolver(npw = %s)", solver.npw)
 
 """
-	update_operators!(solver, omega, ksq, size, b, ds)
+	update!(solver, omega, ksq, size, b, ds)
 
 Update differential operators for a given set of `omega` and `ksq` grids
 with specified monomer size and chain length parameters.
 """
-function update_operators!(solver::PseudoSpectralSolver, omega::PWGrid, ksq::PWGrid, vbar::Real, b::Real, ds::Real)
+function update!(solver::PseudoSpectralSolver, omega::FieldGrid, ksq::FieldGrid, vbar::Real, b::Real, ds::Real)
 	@assert size(omega) == solver.npw
 	@assert size(ksq) == size(solver.LD1)
 
@@ -79,7 +73,7 @@ end
 Take one step forward along the chain propagator from input `qin` to output `qout`.
 Utilizes pre-allocated fast-Fourier transforms of the correct dimension from the provided `FFTBuddy`.
 """
-function propagate!(solver::PseudoSpectralSolver, fft::FFTBuddy, qin::PWGrid, qout::PWGrid)
+function propagate!(solver::PseudoSpectralSolver, fft::FFTBuddy, qin::FieldGrid, qout::FieldGrid)
 	@assert solver.npw == fft.npw
 
 	# Offload params

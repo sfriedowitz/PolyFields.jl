@@ -1,16 +1,10 @@
-#==============================================================================#
-# Methods related to field and cell updating
-#==============================================================================#
-
 """
-    update_state!(sys, updater)
+    step!(sys, updater)
 
 Perform a single step to update the system fields 
 using the methods defined by a provided `AbstractFieldUpdater`.
 """
-update_state!(sys::FieldSystem, updater::AbstractFieldUpdater) = nothing
-
-#==============================================================================#
+step!(updater::AbstractFieldUpdater) = nothing
 
 """
     field_error(sys)

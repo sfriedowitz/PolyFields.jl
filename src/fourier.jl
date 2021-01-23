@@ -1,20 +1,14 @@
 """
 	struct FFTBuddy
 
-A helper struct that stores pre-allocated utilities
-for performing fast-Fourier transforms for a given grid-size.
-Allocates `ngrids` temporary complex `PWGrid`s for use as
-temporary storage for in-place FFT operations.
-
-### Constructors
-```julia
-FFTBuddy(npw; ngrids = 0, nthreads = 1)
-```
+A helper struct that stores pre-allocated arrays
+for performing fast-Fourier transforms on a given grid-size.
+Allocates a given number of complex grids for use as temporary storage for in-place FFT operations.
 """
 struct FFTBuddy
     npw    :: NTuple{3, Int}
-    rgrids :: Vector{PWGrid{Float64}}
-    kgrids :: Vector{PWGrid{Complex{Float64}}}
+    rgrids :: Vector{FieldGrid{Float64}}
+    kgrids :: Vector{FieldGrid{Complex{Float64}}}
 
 	FT     :: FFTW.rFFTWPlan{Float64,-1,false,3}
     iFT    :: AbstractFFTs.ScaledPlan{Complex{Float64},FFTW.rFFTWPlan{Complex{Float64},1,false,3},Float64}
@@ -52,7 +46,7 @@ end
 # Methods
 #==============================================================================#
 
-show(io::IO, fft::FFTBuddy) = @printf(io, "FFTBuddy(npw = %s)", fft.npw)
+Base.Base.show(io::IO, fft::FFTBuddy) = @printf(io, "FFTBuddy(npw = %s)", fft.npw)
 
 num_rgrids(fft::FFTBuddy) = length(fft.rgrids)
 num_kgrids(fft::FFTBuddy) = length(fft.kgrids)

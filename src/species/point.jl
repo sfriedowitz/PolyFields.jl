@@ -3,21 +3,20 @@
 #==============================================================================#
 
 """
-	Point(mon; name = "")
+	mutable struct Point <: AbstractSpecies
 
-Construct a `Point` species representing a single-particle of a given `Monomer` type.
+Species corresponding to a single point-like particle composed of a single monomer type.
 """
 mutable struct Point <: AbstractSpecies
-	name    :: String
 	mids    :: Vector{Int}
 	Nref    :: Float64
 
 	# SCF fields
 	Q       :: Float64
-	density :: Dict{Int,PWGrid{Float64}}
+	density :: Dict{Int,FieldGrid{Float64}}
 	system  :: Option{FieldSystem}
 
-	function Point(mon::Monomer; name::String = "")
+	function Point(mon::Monomer)
 		return new(name, [mon.id], mon.size, 0.0, Dict(), nothing)
 	end
 end
@@ -26,7 +25,7 @@ end
 # Methods
 #==============================================================================#
 
-show(io::IO, point::Point) = @printf(io, "Point(mid = %d)", point.mids[1])
+Base.show(io::IO, species::Point) = @printf(io, "Point(mid = %d)", species.mids[1])
 
 monomer_fraction(point::Point, mid::Integer) = has_monomer(point, mid) ? 1.0 : 0.0
 
@@ -37,9 +36,7 @@ function setup!(point::Point, sys::FieldSystem)
 	return nothing
 end
 
-#==============================================================================#
-
-function update_density!(point::Point)
+function density!(species::Point)
 	@assert !isnothing(point.system)
 	sys = point.system
 	mon = sys.monomers[point.mids[1]]

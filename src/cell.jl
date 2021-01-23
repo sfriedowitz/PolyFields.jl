@@ -1,4 +1,6 @@
 """
+    mutable struct Cell{TF <: AbstractFloat}
+
     Cell1D(a)
     Cell2D(a, b, gamma = pi/2)
     Cell3D(a, b, c, alpha = pi/2, beta = pi/2, gamma = pi/2)
@@ -15,50 +17,45 @@ The input cell parameters represent:
 * `gamma` : Angle between ``a_1`` and ``a_2`` vectors
 """
 mutable struct Cell
-    dim     :: Int
+    dim    :: Int
 
     # All the fields containing basis information
-    params  :: Vector{Float64}
-    volume  :: Float64
+    params :: Vector{Float64}
+    volume :: Float64
 
-    R_basis :: SMat3D{Float64} # R[:,i] = Bravais lattice basis vector a_i
-    G_basis :: SMat3D{Float64} # G[:,i] = Reciprocal lattice basis vector b_i
-
-    dR      :: Array{Float64,3} # Derivatives of a_i w.r.t. num cell parameters
-    dG      :: Array{Float64,3} # Derivatives of b_i
-    dRR     :: Array{Float64,3} # Derivatives of a_i ⋅ a_j
-    dGG     :: Array{Float64,3} # Derivatives of b_i ⋅ b_j
+    R      :: SMat3D{Float64}  # R[:,i] = Bravais lattice basis vector a_i
+    G      :: SMat3D{Float64}  # G[:,i] = Reciprocal lattice basis vector b_i
+    dR     :: Array{Float64,3} # Derivatives of a_i w.r.t. num cell parameters
+    dG     :: Array{Float64,3} # Derivatives of b_i
+    dRR    :: Array{Float64,3} # Derivatives of a_i ⋅ a_j
+    dGG    :: Array{Float64,3} # Derivatives of b_i ⋅ b_j
 
     # Grids for k-vectors
-    ksq     :: PWGrid{Float64}
-    dksq    :: Vector{PWGrid{Float64}}
+    ksq    :: FieldGrid{Float64}
+    dksq   :: Vector{FieldGrid{Float64}}
 
-    function Cell(dim::Integer, params::Vector{<:Real})
+    function Cell(dim::Integer, params::AbstractVector{<:Real})
         cell = new()
         cell.dim = dim
         cell.params = params
 
         # Setup all of the arrays
-        nparam = num_cell_params(cell)
-        cell.dR = zeros(3, 3, nparam)
-        cell.dG = zeros(3, 3, nparam)
-        cell.dRR = zeros(3, 3, nparam)
-        cell.dGG = zeros(3, 3, nparam)
+        npr = nparams(cell)
+        cell.dR = zeros(3, 3, npr)
+        cell.dG = zeros(3, 3, npr)
+        cell.dRR = zeros(3, 3, npr)
+        cell.dGG = zeros(3, 3, npr)
 
         # Add the k-grids
-        cell.ksq = PWGrid{Float64}(undef, 0, 0, 0)
+        cell.ksq = FieldGrid{Float64}(undef, 0, 0, 0)
         cell.dksq = []
 
         # Update the basis information to make current before return
-        update_cell!(cell)
+        update!(cell)
 
         return cell
     end
 end
-
-#==============================================================================#
-# Constructors
-#==============================================================================#
 
 function Cell1D(a::Real)
     params = [a]
@@ -75,20 +72,18 @@ function Cell3D(a::Real, b::Real, c::Real, alpha::Real = pi/2, beta::Real = pi/2
     return Cell(3, params)
 end
 
-function Cell3D(lengths::Vector{<:Real}, angles::Vector{<:Real} = [pi/2, pi/2, pi/2])
+function Cell3D(lengths::AbstractVector{<:Real}, angles::AbstractVector{<:Real} = [pi/2, pi/2, pi/2])
     @assert length(lengths) == 3 && length(angles) == 3
     return Cell3D(lengths..., angles...)
 end
 
 #==============================================================================#
-# Methods
-#==============================================================================#
 
-show(io::IO, cell::Cell) = @printf(io, "Cell(dim = %d, V = %.2f)", cell.dim, cell.volume)
+Base.show(io::IO, cell::Cell) = @printf(io, "Cell(dim = %d, V = %.2f)", cell.dim, cell.volume)
 
-num_cell_params(cell::Cell) = length(cell.params)
+nparams(cell::Cell) = length(cell.params)
 
-function parameter_string(cell::Cell)
+function paramstring(cell::Cell)
     p = cell.params
     if cell.dim == 1
         return @sprintf "%.3f" p[1]
@@ -100,23 +95,6 @@ function parameter_string(cell::Cell)
     return ""
 end
 
-function setup_kgrids!(cell::Cell, npw::NTuple{3,<:Integer})
-    dim = num_dims(npw)
-    if dim != cell.dim
-        error("Invalid Cell dimension and plane-wave grid dimensions.")
-    end
-
-    # Setup the k-squared grid
-    cell.ksq = zeros(Float64, floor(Int, npw[1]/2 + 1), npw[2], npw[3])
-    ksq_grid!(cell)
-
-    # Setup the grid of k-vectors
-    cell.dksq = [zeros(Float64, floor(Int, npw[1]/2 + 1), npw[2], npw[3]) for k = 1:num_cell_params(cell)]
-    dksq_grid!(cell)
-
-    return nothing
-end
-
 """
     update_cell!(cell)
 
@@ -125,36 +103,36 @@ given the current set of parameters (lengths/angles).
 
 Must be called after every update to cell parameters during a variable cell calculation.
 """
-function update_cell!(cell::Cell)
+function update!(cell::Cell)
     # Construct a new basis matrix from cell params
-    update_basis!(cell)
+    basis!(cell)
 
     # Calculate cell basis derivatives: dR, dG, dRR, dGG
-    d_basis!(cell)
-    dd_basis!(cell)
+    dbasis!(cell)
+    ddbasis!(cell)
 
     # Update the ksq and dksq grids
-    ksq_grid!(cell)
-    dksq_grid!(cell)
+    ksq!(cell)
+    dksq!(cell)
 
     return nothing
 end
 
-function update_basis!(cell::Cell)
+function basis!(cell::Cell)
     p = cell.params
     if cell.dim == 1
-        cell.R_basis = triclinic_vectors(p[1], 1.0, 1.0, pi/2, pi/2, pi/2)
+        cell.R = make_basis(p[1], 1.0, 1.0, pi/2, pi/2, pi/2)
     elseif cell.dim == 2
-        cell.R_basis = triclinic_vectors(p[1], p[2], 1.0, pi/2, pi/2, p[3])
+        cell.R = make_basis(p[1], p[2], 1.0, pi/2, pi/2, p[3])
     else
-        cell.R_basis = triclinic_vectors(p...)
+        cell.R = make_basis(p...)
     end
-    cell.G_basis = 2*pi*transpose(inv(cell.R_basis))
-    cell.volume = det(cell.R_basis)
+    cell.G = 2*pi*transpose(inv(cell.R))
+    cell.volume = det(cell.R)
     return nothing
 end
 
-function d_basis!(cell::Cell)
+function dbasis!(cell::Cell)
     # Calculates the variation of the real and reciprocal basis matrices
     #   w.r.t. each of the (6) cell parameters, a/b/c/alpha/beta/gamma
     # Analytically:
@@ -165,7 +143,7 @@ function d_basis!(cell::Cell)
 
     # Calculate the derivatives of the real basis matrix w.r.t each parameter
     #   R == 3x3 matrix
-    #   grad(r) = 3x3x6 array, gradient of cell dimensions adds a rank
+    #   grad(R) = 3x3x6 array, gradient of cell dimensions adds a rank
     if cell.dim == 1
         cell.dR[1,1,1] = 1.0
     elseif cell.dim == 2
@@ -177,7 +155,7 @@ function d_basis!(cell::Cell)
         cell.dR[2,2,3] = b * cos(gamma)
     elseif cell.dim == 3
         a, b, c, alpha, beta, gamma = cell.params
-        cx, cy, cz = cell.R_basis[1,3], cell.R_basis[2,3], cell.R_basis[3,3]
+        cx, cy, cz = cell.R[1,3], cell.R[2,3], cell.R[3,3]
         cell.dR[1,1,1] = 1.0
         cell.dR[1,2,2] = cos(gamma)
         cell.dR[2,2,2] = sin(gamma)
@@ -200,9 +178,9 @@ function d_basis!(cell::Cell)
     # Update the dG matrix using the dR matrix calculated above
     #   d(b_u) = -(1/2pi) * sum_v [ b_u * d(a_v) b_v ] (Jian's thesis & 2003 stress paper)
     #   So we can express reciprocal variation in terms of real variation dR matrix
-    G = cell.G_basis
+    G = cell.G
     dR = cell.dR
-    for k = 1:num_cell_params(cell)
+    for k = 1:nparams(cell)
         for i = 1:cell.dim
             for j = 1:cell.dim
                 for l = 1:cell.dim
@@ -218,7 +196,7 @@ function d_basis!(cell::Cell)
     return nothing
 end
 
-function dd_basis!(cell::Cell)
+function ddbasis!(cell::Cell)
     # Calculate derivatives of basis vector dot products w.r.t. cell params
     # Analytically:
     #   dRR_ijk = d(a_i ⋅ a_j) / d(theta_k)
@@ -227,11 +205,11 @@ function dd_basis!(cell::Cell)
     fill!(cell.dGG, 0.0)
 
     # Updates dRR and dGG based on the current basis matrix
-    R = transpose(cell.R_basis) # Transpose works to correct indexing from PSCF
-    G = cell.G_basis
+    R = transpose(cell.R) # Transpose works to correct indexing from PSCF
+    G = cell.G
     dR = cell.dR
     dG = cell.dG
-    for k = 1:num_cell_params(cell)
+    for k = 1:nparams(cell)
         for i = 1:cell.dim
             for j = 1:cell.dim
                 for l = 1:cell.dim
@@ -247,15 +225,32 @@ end
 
 #==============================================================================#
 
-"""
-    ksq_grid!(cell)
+function setup_ksq!(cell::Cell, npw::NTuple{3,<:Integer})
+    dim = nmultidims(npw)
+    if dim != cell.dim
+        error("Invalid Cell dimension and plane-wave grid dimensions.")
+    end
 
-Update the |k^2| grid given the current reciprocal cell basis `G_basis`.
+    # Setup the k-squared grid
+    cell.ksq = zeros(Float64, floor(Int, npw[1]/2 + 1), npw[2], npw[3])
+    ksq!(cell)
+
+    # Setup the grid of k-vectors
+    cell.dksq = [zeros(Float64, floor(Int, npw[1]/2 + 1), npw[2], npw[3]) for k = 1:nparams(cell)]
+    dksq!(cell)
+
+    return nothing
+end
+
+"""
+    ksq!(cell)
+
+Update the |k^2| grid given the current reciprocal cell basis `Gbasis`.
 The wavevectors are shifted in accordance with the output of a real FFT.
 """
-function ksq_grid!(cell::Cell)
+function ksq!(cell::Cell)
     Nx, Ny, Nz = size(cell.ksq)
-    G = cell.G_basis
+    G = cell.G
 
     for idx in CartesianIndices(cell.ksq)
         ix, iy, iz = idx[1]-1, idx[2]-1, idx[3]-1
@@ -265,22 +260,21 @@ function ksq_grid!(cell::Cell)
         jz = iz <= Nz/2 ? iz : Nz-iz 
         jvec = @SVector [jx, jy, jz]
         kvec = G * jvec
-
-        kdot = dot(kvec, kvec)
-        @inbounds cell.ksq[idx] = kdot
+        
+        @inbounds cell.ksq[idx] = dot(kvec, kvec)
     end
 
     return nothing
 end
 
 """
-    dksq_grid!(cell)
+    dksq!(cell)
 
 Update the derivatives of |k^2| for each cell parameter.
 """
-function dksq_grid!(cell::Cell)
+function dksq!(cell::Cell)
     Nx, Ny, Nz = size(cell.ksq)
-    G = cell.G_basis
+    G = cell.G
     dGG = cell.dGG
 
     #Threads.@threads for k = 1:length(cell.dksq)

@@ -37,7 +37,7 @@ end
 # Methods
 #==============================================================================#
 
-show(io::IO, domain::DomainUpdater) = @printf(io, "DomainUpdater(tol = %.3e, skip = %d)", domain.tol, domain.skip)
+Base.show(io::IO, domain::DomainUpdater) = @printf(io, "DomainUpdater(tol = %.3e, skip = %d)", domain.tol, domain.skip)
 
 function setup!(domain::DomainUpdater, sys::FieldSystem)
     domain.system = sys

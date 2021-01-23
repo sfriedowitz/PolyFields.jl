@@ -1,14 +1,8 @@
 """
 	struct Monomer
 
-A struct representing a chemical monomer type.
-A `Monomer` is identified by its unique monomer `id`, 
-which is used to access fields and density grids within a system.
-
-### Constructors
-```julia
-Monomer(; id, size = 1.0, charge = 0.0, name = "")
-```
+A chemical monomer type, identified by a unique monomer ID
+that is used to access a field and density grid from within a system.
 """
 struct Monomer
 	id     :: Int
@@ -23,7 +17,7 @@ end
 
 #==============================================================================#
 
-function show(io::IO, mon::Monomer)
+function Base.Base.show(io::IO, mon::Monomer)
     if !isempty(mon.name)
         @printf(io, "Monomer(`%s`, mid = %d, size = %.2f)", mon.name, mon.id, mon.size)
     else
@@ -31,6 +25,6 @@ function show(io::IO, mon::Monomer)
     end
 end
 
-hash(mon::Monomer, h::UInt) = hash(mon.id, h)
+Base.hash(mon::Monomer, h::UInt) = hash(mon.id, h)
 
-isequal(amon::Monomer, bmon::Monomer) = (hash(amon) == hash(bmon))
+Base.isequal(amon::Monomer, bmon::Monomer) = (hash(amon) == hash(bmon))

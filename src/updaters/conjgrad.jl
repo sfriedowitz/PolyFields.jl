@@ -10,9 +10,9 @@ mutable struct ConjGradUpdater <: AbstractFieldUpdater
 	lam  :: Float64
 	d0   :: Float64
 
-    pv   :: Dict{Int,PWGrid{Float64}} # Current steps
-	res0 :: Dict{Int,PWGrid{Float64}} # Previous gradients
-	temp :: Dict{Int,PWGrid{Float64}} # Temp storage of fields during line-search
+    pv   :: Dict{Int,FieldGrid{Float64}} # Current steps
+	res0 :: Dict{Int,FieldGrid{Float64}} # Previous gradients
+	temp :: Dict{Int,FieldGrid{Float64}} # Temp storage of fields during line-search
 
 	function ConjGradUpdater(; ls, lam::Real = 0.1, nu::Real = 0.1, lmin::Real = 1e-3, lrat::Real = 10.0)
 	 	return new(ls, nu, lmin, lrat, lam, 0.0, Dict(), Dict(), Dict())
@@ -23,7 +23,7 @@ end
 # Methods
 #==============================================================================#
 
-show(io::IO, updater::ConjGradUpdater) = @printf(io, "ConjGradUpdater(lam = %.3g)", updater.lam)
+Base.show(io::IO, updater::ConjGradUpdater) = @printf(io, "ConjGradUpdater(lam = %.3g)", updater.lam)
 
 function setup!(updater::ConjGradUpdater, sys::FieldSystem)
 	copy_dict!(sys.residuals, updater.pv)
@@ -39,7 +39,7 @@ end
 
 #==============================================================================#
 
-function pr_update(curr::Dict{TK,TV}, prev::Dict{TK,TV}, epsilon = eps(Float64)) where {TK<:Integer,TV<:PWGrid}
+function pr_update(curr::Dict{TK,TV}, prev::Dict{TK,TV}, epsilon = eps(Float64)) where {TK<:Integer,TV<:FieldGrid}
 	num = dot_dicts(curr, curr) - dot_dicts(curr, prev)
 	denom = dot_dicts(prev, prev) + epsilon
 	return num / denom

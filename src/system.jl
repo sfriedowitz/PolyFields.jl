@@ -34,19 +34,19 @@ mutable struct FieldSystem
 
 	# Field grids for each monomer type
 	monomers     :: Dict{Int,Monomer}
-	fields       :: Dict{Int,PWGrid{Float64}}
-	potentials   :: Dict{Int,PWGrid{Float64}}
-	residuals    :: Dict{Int,PWGrid{Float64}}
-	density      :: Dict{Int,PWGrid{Float64}}
+	fields       :: Dict{Int,FieldGrid{Float64}}
+	potentials   :: Dict{Int,FieldGrid{Float64}}
+	residuals    :: Dict{Int,FieldGrid{Float64}}
+	density      :: Dict{Int,FieldGrid{Float64}}
 	density_bulk :: Dict{Int,Float64}
 
 	# Constraints
-	comp         :: Compressibility
+	constraints  :: Vector{AbstractConstraint}
 	elec         :: Electroneutrality
-	eta          :: PWGrid{Float64}
-	kappa        :: PWGrid{Float64}
-	density_sum  :: PWGrid{Float64}
-	charge_sum   :: PWGrid{Float64}
+	eta          :: FieldGrid{Float64}
+	kappa        :: FieldGrid{Float64}
+	density_sum  :: FieldGrid{Float64}
+	charge_sum   :: FieldGrid{Float64}
 
 	# Species, interactions, constraints
 	species      :: Vector{AbstractSpecies}
@@ -96,7 +96,7 @@ FieldSystem(Nx::Integer, Ny::Integer, Nz::Integer, cell::Cell; kwargs...) =
 # Methods
 #==============================================================================#
 
-function show(io::IO, sys::FieldSystem)
+function Base.show(io::IO, sys::FieldSystem)
 	@printf(io, "FieldSystem(npw = %s, ensemble = %s, %d monomers, %d species)", 
 		sys.npw, sys.ensemble, num_monomers(sys), num_species(sys))
 end

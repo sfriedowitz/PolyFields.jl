@@ -10,10 +10,10 @@ mutable struct MomentumUpdater <: AbstractFieldUpdater
 	beta1  :: Float64
 	beta2  :: Float64
 
-	step   :: Dict{Int,PWGrid{Float64}} # Final step for each method
-	mt     :: Dict{Int,PWGrid{Float64}} # First moment of gradient moving average
-	vt     :: Dict{Int,PWGrid{Float64}} # Second moment of gradient moving average
-	temp   :: Dict{Int,PWGrid{Float64}}
+	step   :: Dict{Int,FieldGrid{Float64}} # Final step for each method
+	mt     :: Dict{Int,FieldGrid{Float64}} # First moment of gradient moving average
+	vt     :: Dict{Int,FieldGrid{Float64}} # Second moment of gradient moving average
+	temp   :: Dict{Int,FieldGrid{Float64}}
 
 	function MomentumUpdater(;  
 		method::AbstractString = "MOM", 
@@ -38,7 +38,7 @@ end
 # Methods
 #==============================================================================#
 
-show(io::IO, updater::MomentumUpdater) = @printf(io, "MomentumUpdater(method = %s, lam = %.3g)", updater.method, updater.lam)
+Base.show(io::IO, updater::MomentumUpdater) = @printf(io, "MomentumUpdater(method = %s, lam = %.3g)", updater.method, updater.lam)
 
 function setup!(updater::MomentumUpdater, sys::FieldSystem)
 	# Copy fields to step and temp

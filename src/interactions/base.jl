@@ -1,7 +1,3 @@
-#==============================================================================#
-# Methods for abstract interactions
-#==============================================================================#
-
 """
     set_interaction!(itx, args...)
 
@@ -19,7 +15,7 @@ energy(itx::AbstractInteraction) = nothing
 """
     energy_bulk(itx)
 
-Return the energy contribution of the `AbstractInteraction` corresponding 
+Return the energy contribution of the interaction corresponding 
 to the homogeneous bulk composition.
 """
 energy_bulk(itx::AbstractInteraction) = nothing
@@ -29,4 +25,4 @@ energy_bulk(itx::AbstractInteraction) = nothing
 
 Add the potential contribution for species `alpha` to the array grid `pot`.
 """
-add_potential!(itx::AbstractInteraction, alpha::Integer, pot::PWGrid) = nothing
+add_potential!(itx::AbstractInteraction, alpha::Integer, pot::FieldGrid) = nothing
