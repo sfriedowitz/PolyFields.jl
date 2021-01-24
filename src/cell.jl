@@ -17,22 +17,22 @@ The input cell parameters represent:
 * `gamma` : Angle between ``a_1`` and ``a_2`` vectors
 """
 mutable struct Cell
-    dim    :: Int
+    dim     :: Int
+    volume  :: Float64
 
-    # All the fields containing basis information
-    params :: Vector{Float64}
-    volume :: Float64
+    params  :: Vector{Float64}
+    dparams :: Vector{Float64}
 
-    R      :: SMat3D{Float64}  # R[:,i] = Bravais lattice basis vector a_i
-    G      :: SMat3D{Float64}  # G[:,i] = Reciprocal lattice basis vector b_i
-    dR     :: Array{Float64,3} # Derivatives of a_i w.r.t. num cell parameters
-    dG     :: Array{Float64,3} # Derivatives of b_i
-    dRR    :: Array{Float64,3} # Derivatives of a_i ⋅ a_j
-    dGG    :: Array{Float64,3} # Derivatives of b_i ⋅ b_j
+    R       :: SMat3D{Float64}  # R[:,i] = Bravais lattice basis vector a_i
+    G       :: SMat3D{Float64}  # G[:,i] = Reciprocal lattice basis vector b_i
+    dR      :: Array{Float64,3} # Derivatives of a_i w.r.t. num cell parameters
+    dG      :: Array{Float64,3} # Derivatives of b_i
+    dRR     :: Array{Float64,3} # Derivatives of a_i ⋅ a_j
+    dGG     :: Array{Float64,3} # Derivatives of b_i ⋅ b_j
 
     # Grids for k-vectors
-    ksq    :: FieldGrid{Float64}
-    dksq   :: Vector{FieldGrid{Float64}}
+    ksq     :: FieldGrid{Float64}
+    dksq    :: Vector{FieldGrid{Float64}}
 
     function Cell(dim::Integer, params::AbstractVector{<:Real})
         cell = new()
@@ -41,6 +41,7 @@ mutable struct Cell
 
         # Setup all of the arrays
         npr = nparams(cell)
+        cell.dparams = zeros(npr)
         cell.dR = zeros(3, 3, npr)
         cell.dG = zeros(3, 3, npr)
         cell.dRR = zeros(3, 3, npr)
@@ -96,7 +97,28 @@ function paramstring(cell::Cell)
 end
 
 """
-    update_cell!(cell)
+    setup!(cell, sys)
+
+Allocate k-grids of an appropriate size for the system.
+"""
+function setup!(cell::Cell, sys::AbstractSystem)
+    dim = ndims(sys.dims)
+    if dim != cell.dim
+        error("Number of non-singleton dimensions in System and Cell do not match!")
+    end
+
+    # Setup the cell
+    cell.ksq = zeros(Float64, ksize(sys.dims))
+    cell.dksq = [zeros(Float64, ksize(sys.dims)) for k = 1:nparams(cell)]
+    
+    ksq!(cell)
+    dksq!(cell)
+
+    return nothing
+end
+
+"""
+    update!(cell)
 
 Update the cell basis matrices and wavevector grids
 given the current set of parameters (lengths/angles).
@@ -224,23 +246,6 @@ function ddbasis!(cell::Cell)
 end
 
 #==============================================================================#
-
-function setup_ksq!(cell::Cell, npw::NTuple{3,<:Integer})
-    dim = nmultidims(npw)
-    if dim != cell.dim
-        error("Invalid Cell dimension and plane-wave grid dimensions.")
-    end
-
-    # Setup the k-squared grid
-    cell.ksq = zeros(Float64, floor(Int, npw[1]/2 + 1), npw[2], npw[3])
-    ksq!(cell)
-
-    # Setup the grid of k-vectors
-    cell.dksq = [zeros(Float64, floor(Int, npw[1]/2 + 1), npw[2], npw[3]) for k = 1:nparams(cell)]
-    dksq!(cell)
-
-    return nothing
-end
 
 """
     ksq!(cell)

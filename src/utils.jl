@@ -2,20 +2,16 @@
 # Utility functions
 #==============================================================================#
 
-ordered(i::Integer, j::Integer) = i <= j ? (i, j) : (j, i)
+ndims(dims::NTuple{3,<:Integer}) = sum(dims .> 1)
 
-nsingledims(dims::NTuple{N,<:Integer}) where N = sum(dims .== 1)
-nmultidims(dims::NTuple{N,<:Integer}) where N = sum(dims .> 1)
-
-singledims(dims::NTuple{N,<:Integer}) where N = findall(dims .== 1)
-multidims(dims::NTuple{N,<:Integer}) where N = findall(dims .> 1)
+ksize(dims::NTuple{3,TI}) where {TI <: Integer} = (floor(TI, dims[1]/2+1), dims[2], dims[3])
 
 function squeeze(A::AbstractArray)
-    inshape = size(A)
-    multi = multidims(inshape)
-    outshape = inshape[multi]
+    outshape = Tuple(s for s in size(A) if s > 1)
     return reshape(A, outshape)
 end
+
+ordered_pair(i::Integer, j::Integer) = i <= j ? (i, j) : (j, i)
 
 function determine_nthreads(size::Integer, serial_cut::Integer = 20000)
     return min(Threads.nthreads(), 1 + size÷serial_cut)
@@ -24,13 +20,13 @@ end
 #==============================================================================#
 
 """
+    copydict!(dest, src)
 
+Copy data from arrays in `src` to arrays with matching keys in `dest`.
 """
-function copy_dict!(src::Dict{TK,TV}, dst::Dict{TK,TV}) where {TK,TV<:AbstractArray}
+function copydict!(dest::Dict{TK,TV}, src::Dict{TK,TV}) where {TK,TV<:AbstractArray}
     for (key, val) in src
-        if !haskey(dst, key)
-            dst[key] = deepcopy(val)
-        else
+        if haskey(dest, key)
             dst[key] .= val
         end
     end
@@ -38,15 +34,18 @@ function copy_dict!(src::Dict{TK,TV}, dst::Dict{TK,TV}) where {TK,TV<:AbstractAr
 end
 
 """
+    dotdicts(a, b)
 
+Compute the total dot product between arrays with matching keys in the two dictionaries.
 """
-function dot_dicts(a::Dict{TK,TV}, b::Dict{TK,TV}) where {TK,TV<:AbstractArray}
+function dotdicts(a::Dict{TK,TV}, b::Dict{TK,TV}) where {TK,TV<:AbstractArray}
     # Performs a dot product between all arrays in a and b dictionaries
     d = 0.0
     for (key, val1) in a
-        @assert haskey(b, key)
-        val2 = b[key]
-        d += dot(val1, val2)
+        if haskey(b, key)
+            val2 = b[key]
+            d += dot(val1, val2)
+        end
     end
     return d
 end

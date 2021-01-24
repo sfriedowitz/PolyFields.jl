@@ -59,18 +59,18 @@ function setup!(updater::AndersonUpdater, sys::FieldSystem)
         end
 
         # Allocate step directions
-        updater.WW = zeros(sys.npw)
-        updater.DD = zeros(sys.npw)
+        updater.WW = zeros(sys.dims)
+        updater.DD = zeros(sys.dims)
 
         # Allocate history arrays
         for dict in updater.res_hist
             for (mid, res) in sys.residuals
-                dict[mid] = zeros(sys.npw)
+                dict[mid] = zeros(sys.dims)
             end
         end
         for dict in updater.field_hist
             for (mid, omega) in sys.fields
-                dict[mid] = zeros(sys.npw)
+                dict[mid] = zeros(sys.dims)
             end
         end
 

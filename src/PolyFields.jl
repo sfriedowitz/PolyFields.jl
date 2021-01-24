@@ -33,20 +33,21 @@ using LineSearches
 #==============================================================================#
 
 # Types
-export AbstractSpecies, AbstractConstraint, AbstractInteraction, AbstractFieldUpdater
-export FieldGrid, Cell, Cell1D, Cell2D, Cell3D, FFTBuddy, PseudoSpectralSolver
+export AbstractSystem, AbstractSpecies, AbstractConstraint, AbstractPropagator, AbstractInteraction, AbstractFieldUpdater
+export FieldGrid, FieldDims, Cell, Cell1D, Cell2D, Cell3D, FFTHolder, PseudoSpectralSolver
 export Monomer, Point, Homopolymer, Diblock, Multiblock
-export ChiInteraction, GaussianEdwards
+export FloryInteraction, EdwardsInteraction
 export Ensemble, Canonical, Grand, Compressibility, Electroneutrality
 export FieldSystem, SCFTOptions, SCFTResults
 export DomainUpdater, EulerUpdater, AndersonUpdater, MomentumUpdater
 
 # Methods
-export add_mde_solver!, add_monomer!, add_species!, add_interaction!, validate
+export setup!, update!, set_interaction
+export add_monomer!, add_species!, add_interaction!, add_constraint!, isvalid
 export density!, muphi!, potentials!, potential!, update_eta!, stress!, set_omega_uniform, residuals!
 export free_energy, free_energy_bulk, energy, energy_bulk, set_interaction!
 export step!, field_error, stress_error
-export scft!, fieldinit!, fieldsave, fieldload!
+export scft!, fieldinit!, savefields, loadfields!
 
 #==============================================================================#
 # Load files
@@ -55,22 +56,24 @@ export scft!, fieldinit!, fieldsave, fieldload!
 # General
 include("types.jl")
 include("utils.jl")
-
+include("fft.jl")
+include("mde.jl")
 include("cell.jl")
-# include("fourier.jl")
-# include("mde.jl")
-# include("system.jl")
+include("monomer.jl")
 
-# # Species architectures
-# include("species/base.jl")
-# include("species/monomer.jl")
-# include("species/point.jl")
-# include("species/multiblock.jl")
+# System fields
+include("system/system.jl")
+include("system/constraints.jl")
+
+# Species architectures
+include("species/base.jl")
+include("species/point.jl")
+include("species/multiblock.jl")
 
 # # Interaction classes
-# include("interactions/base.jl")
-# include("interactions/chi.jl")
-# include("interactions/gaussian.jl")
+include("interactions/base.jl")
+include("interactions/flory.jl")
+include("interactions/edwards.jl")
 
 # # Field updaters
 # include("updaters/base.jl")

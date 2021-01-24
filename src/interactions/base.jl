@@ -1,9 +1,9 @@
 """
-    set_interaction!(itx, args...)
+	set_interaction(itx, args...)
 
-Set interaction parameters specific to a given `AbstractInteraction`.
+Set coefficients for a specific interaction between chemical species.
 """
-set_interaction!(itx::AbstractInteraction, args...) = nothing
+set_interaction(its::AbstractInteraction, args...) = nothing
 
 """
     energy(itx)
@@ -13,16 +13,16 @@ Return the energy contribution of the `AbstractInteraction` for a given set of s
 energy(itx::AbstractInteraction) = nothing
 
 """
-    energy_bulk(itx)
+    bulk_energy(itx)
 
 Return the energy contribution of the interaction corresponding 
 to the homogeneous bulk composition.
 """
-energy_bulk(itx::AbstractInteraction) = nothing
+bulk_energy(itx::AbstractInteraction) = nothing
 
 """
-    add_potential!(itx, alpha, pot)
+    potential!(itx, alpha, grid)
 
-Add the potential contribution for species `alpha` to the array grid `pot`.
+Add the potential contribution for monomer `alpha` to the provided field grid.
 """
-add_potential!(itx::AbstractInteraction, alpha::Integer, pot::FieldGrid) = nothing
+potential!(itx::AbstractInteraction, alpha::Integer, grid::FieldGrid) = nothing

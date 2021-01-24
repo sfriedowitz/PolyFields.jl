@@ -47,12 +47,12 @@ function setup!(updater::MomentumUpdater, sys::FieldSystem)
 
 	# Initialize first moments of gradient
 	for (mid, _) in sys.fields
-		updater.mt[mid] = zeros(sys.npw)
+		updater.mt[mid] = zeros(sys.dims)
 	end
 
 	# Initialize second moments of gradient
 	for (mid, _) in sys.fields
-		updater.vt[mid] = zeros(sys.npw)
+		updater.vt[mid] = zeros(sys.dims)
 	end
 
 	return nothing

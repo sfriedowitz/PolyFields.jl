@@ -16,7 +16,7 @@ function init_fields!(sys::FieldSystem; seed::Integer = -1, scale::Real = 1.0)
 		Random.seed!(seed)
 	end
 	for (mid, omega) in sys.fields
-		omega .= scale * randn(sys.npw)
+		omega .= scale * randn(sys.dims)
 	end
 	make_residuals!(sys)
 	return nothing
@@ -25,13 +25,13 @@ end
 function init_fields!(sys::FieldSystem, fields::Dict; interpolate = true)
 	for (mid, omega) in fields
 		if haskey(sys.monomers, mid)
-			if size(omega) == sys.npw
+			if size(omega) == sys.dims
 				sys.fields[mid] = omega
 			elseif interpolate
-				omega_itp = interpolate_grid(omega, sys.npw)
+				omega_itp = interpolate_grid(omega, sys.dims)
 				sys.fields[mid] = omega_itp
 			else
-				error("Input field dimensions $(size(omega)) does not match system grid $(sys.npw).")
+				error("Input field dimensions $(size(omega)) does not match system grid $(sys.dims).")
 			end
 		else
 			@warn "Monomer id = $(mid) not present in system -- skipping."

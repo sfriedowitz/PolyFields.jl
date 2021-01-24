@@ -1,26 +1,22 @@
-#==============================================================================#
-# Linear Gaussian chain with variable number of blocks
-#==============================================================================#
-
 """
 	mutable struct Multiblock <: AbstractSpecies
 
 A species representing a linear polymer chain with variable chain length and number of blocks.
 """
 mutable struct Multiblock <: AbstractSpecies
-	name          :: String
+	monomers      :: Vector{Monomer}
 	mids          :: Vector{Int}
 	mid_block     :: Vector{Int}	       # Block idx  --> monomer id
 	mid_map       :: Dict{Int,Vector{Int}} # Monomer id --> block idx, blocks which contain a given mid
 
 	# Chain structure
+	Ns            :: Int
     N             :: Int
     N_block       :: Vector{Int}
     Nref          :: Float64
     Nref_block    :: Vector{Float64}
 	f_block       :: Vector{Float64}
 	b_block       :: Vector{Float64}
-	Ns            :: Int
 	ds_block      :: Vector{Float64}
 	begin_block   :: Vector{Int}
 
@@ -30,19 +26,18 @@ mutable struct Multiblock <: AbstractSpecies
 	qc            :: Vector{FieldGrid{Float64}}
 	density       :: Dict{Int,FieldGrid{Float64}} # Stores density per monomer type
 	density_block :: Dict{Int,FieldGrid{Float64}} # Stores density per block idx
-    system        :: Option{FieldSystem}
+	system        :: Option{FieldSystem}
 end
 
-#==============================================================================#
-# Constructors
-#==============================================================================#
-
 function Multiblock(mon_block::AbstractVector{Monomer}, N_block::AbstractVector{<:Integer}, 
-    b_block::AbstractVector{<:Real}, Ns::Integer = 100; name::String = "")
+    b_block::AbstractVector{<:Real}, Ns::Integer = 100)
     @assert length(mon_block) == length(N_block) == length(b_block)
 
-    # Setup bmonomer info and block-type mappings
-    mid_block = [mon.id for mon in block_monomers]
+    # Setup monomer info and block-type mappings
+    monomers = sort(unique(mon_block))
+	mids = [mon.id for mon in monomers]
+
+    mid_block = [mon.id for mon in mon_block]
     mid_map = Dict()
     for (iblk, mid) in enumerate(mid_block)
         if !haskey(mid_map, mid)
@@ -50,13 +45,12 @@ function Multiblock(mon_block::AbstractVector{Monomer}, N_block::AbstractVector{
         end
         push!(mid_map[mid], iblk)
     end
-    mids = sort(unique(mid_block))
-
+    
     # Determine contour locations for each block
     N = sum(N_block)
     Nref_block = [mon_block[iblk].size * N_block[iblk] for iblk = 1:length(mon_block)]
     Nref, begin_block, ds_block = chain_grid(Nref_block, Ns) # Use the Nref block lengths to discretize solver
-    f_block = [Nb/Nref for Nb in Nref_block]
+    f_block = [Nr/Nref for Nr in Nref_block]
 
     # Check if values were adjusted
     if Ns != begin_block[end]-1
@@ -64,11 +58,9 @@ function Multiblock(mon_block::AbstractVector{Monomer}, N_block::AbstractVector{
         Ns = begin_block[end]-1
     end
 
-    return Multiblock(name, mids, mid_block, mid_map,
-        N, N_block, Nref, Nref_block, f_block, b_block, 
-        Ns, ds_block, begin_block,
-        0.0, [], [], Dict(), Dict(),
-        nothing
+    return Multiblock(monomers, mids, mid_block, mid_map,
+        Ns, N, N_block, Nref, Nref_block, f_block, b_block, ds_block, begin_block,
+        0.0, [], [], Dict(), Dict()
     )
 end
 
@@ -76,57 +68,54 @@ function Homopolymer(mon::Monomer, N::Integer, b::Real, Ns::Integer = 100; name:
     return Multiblock([mon], [N], [b], Ns; name = name)
 end
 
-function Diblock(mon1::Monomer, mon2::Monomer, N::Integer, f::Real, 
+function Diblock(amon::Monomer, bmon::Monomer, N::Integer, f::Real, 
     b1::Real, b2::Real, Ns::Integer = 100; name::String = "")
     N_block = trunc.(Int, [f*N, (1-f)*N])
     if sum(N_block) != N
         error("Non-integer block lengths for N = $N, f = $f.")
     end
-    return Multiblock([mon1, mon2], N_block, [b1, b2], Ns; name = name)
+    return Multiblock([amon, bmon], N_block, [b1, b2], Ns; name = name)
 end
 
 #==============================================================================#
-# Methods
-#==============================================================================#
 
-function Base.show(io::IO, chain::Multiblock)
-    if num_blocks(chain) == 1
-        @printf(io, "Homopolymer(mid = %d, N = %d)", chain.mids[1], chain.N)
-    elseif num_blocks(chain) == 2
-        @printf(io, "Diblock(mids = [%d, %d], N = %d, f = [%.3f, %.3f])", 
-            chain.mids[1], chain.mids[2], chain.N, chain.f_block[1], chain.f_block[2])
+function Base.show(io::IO, species::Multiblock)
+	if nblocks(species) == 1
+        @printf(io, "Homopolymer(mid = %d, N = %d)", species.mids[1], species.N)
+    elseif nblocks(species) == 2
+        @printf(io, "Diblock(mids = %s, N = %d, f = [%.3f, %.3f])", species.mids, species.N, species.f_block[1], species.f_block[2])
     else
-        @printf(io, "Multiblock(%d blocks, %d monomers, N = %d)", num_monomers(chain), num_blocks(chain), chain.N)
+        @printf(io, "Multiblock(%d blocks, %d monomers, N = %d)", num_monomers(chain), nblocks(species), species.N)
     end
 end
 
 nblocks(species::Multiblock) = length(species.N_blocks)
 
-function monomer_fraction(species::Multiblock, mid::Integer)
+function monomerfraction(species::Multiblock, mid::Integer)
 	# Check if mid present
-	if !has_monomer(chain, mid); return 0.0; end
+	if !hasmonomer(species, mid); return 0.0; end
 	# It has the mid, so calculate fraction
 	f = 0.0
-	for iblk in chain.mid_map[mid]
-		f += chain.f_block[iblk]
+	for iblk in species.mid_map[mid]
+		f += species.f_block[iblk]
 	end
 	return f
 end
 
-function setup!(chain::Multiblock, sys::FieldSystem)
-    chain.system = sys
+function setup!(species::Multiblock, sys::FieldSystem)
+    species.system = sys
 
 	# Setup propagators
-	chain.Q = 0.0
-	chain.q = [zeros(Float64, sys.npw) for n = 1:chain.Ns+1]
-	chain.qc = [zeros(Float64, sys.npw) for n = 1:chain.Ns+1]
+	species.Q = 0.0
+	species.q = [zeros(Float64, sys.dims) for n = 1:species.Ns+1]
+	species.qc = [zeros(Float64, sys.dims) for n = 1:species.Ns+1]
 
 	# Setup density grids
-	for mid in chain.mids
-		chain.density[mid] = zeros(Float64, sys.npw)
+	for mid in species.mids
+		species.density[mid] = zeros(Float64, sys.dims)
 	end
-	for iblk = 1:num_blocks(chain)
-		chain.density_block[iblk] = zeros(Float64, sys.npw)
+	for iblk = 1:nblocks(species)
+		species.density_block[iblk] = zeros(Float64, sys.dims)
 	end
 
 	return nothing
@@ -134,71 +123,71 @@ end
 
 #==============================================================================#
 
-function update_density!(chain::Multiblock)
-	@assert !isnothing(chain.system)
-	sys = chain.system
-    fft = sys.fft
+function density!(species::Multiblock)
+	@assert !isnothing(species.system)
+	sys = species.system
+    plan = sys.fftplan
     monomers = sys.monomers
 
 	# Necessary class fields
-	q, qc = chain.q, chain.qc
+	q, qc = species.q, species.qc
 	solver = sys.solver
 	ksq = sys.cell.ksq
 
 	# Solve q by integrating forward along chain
 	q[1] .= 1.0
-	for iblk = 1:num_blocks(chain)
-		b = chain.b_block[iblk]
-		ds = chain.ds_block[iblk]
+	for iblk = 1:nblocks(species)
+		b = species.b_block[iblk]
+		ds = species.ds_block[iblk]
 
-		mid = chain.mid_block[iblk]
+		mid = species.mid_block[iblk]
 		mon = monomers[mid]
 		omega = sys.fields[mid]
 
 		update_operators!(solver, omega, ksq, mon.size, b, ds)
-		for s = chain.begin_block[iblk] : chain.begin_block[iblk+1]-1
-			propagate!(solver, fft, q[s], q[s+1])
+		for s = species.begin_block[iblk] : species.begin_block[iblk+1]-1
+			propagate!(solver, plan, q[s], q[s+1])
 		end
 	end
 
 	# Solve qc by integrating reverse along the chain
     # If a homopolymer, short-cut the integration and copy the propagator in reverse
-    if num_blocks(chain) == 1
+    if nblocks(species) == 1
         for (s, qi) in enumerate(Iterators.reverse(q))
             @inbounds qc[s] .= qi
         end
     else
     	qc[end] .= 1.0
-    	for iblk = num_blocks(chain):-1:1
-    		b = chain.b_block[iblk]
-    		ds = chain.ds_block[iblk]
+    	for iblk = nblocks(species):-1:1
+    		b = species.b_block[iblk]
+    		ds = species.ds_block[iblk]
 
-			mid = chain.mid_block[iblk]
+			mid = species.mid_block[iblk]
 			mon = monomers[mid]
 			omega = sys.fields[mid]
 
     		update_operators!(solver, omega, ksq, mon.size, b, ds)
-    		for s = chain.begin_block[iblk+1] : -1 : chain.begin_block[iblk]+1
-    			propagate!(solver, fft, qc[s], qc[s-1])
+    		for s = species.begin_block[iblk+1] : -1 : species.begin_block[iblk]+1
+    			propagate!(solver, plan, qc[s], qc[s-1])
     		end
     	end
     end
 
 	# Partition function
-	chain.Q = sum(chain.q[end]) / num_grid(sys)
+	species.Q = sum(species.q[end]) / ngrid(sys)
 
 	# Integrate density w/ Simpson's rule
 	# Reset density grids
-	for rho in values(chain.density); rho .= 0.0; end
-	for rho in values(chain.density_block); rho .= 0.0; end
+	for rho in values(species.density); rho .= 0.0; end
+	for rho in values(species.density_block); rho .= 0.0; end
 
-	for iblk = 1:num_blocks(chain)
+	for iblk = 1:nblocks(species)
 		# Block start and end indices
-		blk_bgn = chain.begin_block[iblk]
-		blk_end = chain.begin_block[iblk+1]
+		blk_bgn = species.begin_block[iblk]
+		blk_end = species.begin_block[iblk+1]
 
-		ds = chain.ds_block[iblk]
-		rho = chain.density_block[iblk]
+		ds = species.ds_block[iblk]
+		rho = species.density_block[iblk]
 
 		# First and last
 		@simd for i in eachindex(rho)
@@ -229,39 +218,39 @@ function update_density!(chain::Multiblock)
 	end
 
     # Normalize by 1/(Q*N)
-    for rho in values(chain.density_block)
-        rho ./= chain.Q * chain.Nref
+    for rho in values(species.density_block)
+        rho ./= species.Q * species.Nref
     end
 
 	# Add each block density to appropriate monomer type
-	for mid in chain.mids
-		for iblk in chain.mid_map[mid]
-			chain.density[mid] .+= chain.density_block[iblk]
+	for mid in species.mids
+		for iblk in species.mid_map[mid]
+			species.density[mid] .+= species.density_block[iblk]
 		end
 	end
 
 	return nothing
 end
 
-function scf_stress(chain::Multiblock)
-	@assert !isnothing(chain.system)
-	sys = chain.system
+function scfstress(species::Multiblock)
+	@assert !isnothing(species.system)
+	sys = species.system
 	cell = sys.cell
-	fft = sys.fft
-	q, qc = chain.q, chain.qc
+	plan = sys.fftplan
+	q, qc = species.q, species.qc
 
-    # Get temp grids from the FFT buddy
-    qk1, qk2, qtmp = kgrid(fft,1), kgrid(fft,2), kgrid(fft,3)
+    # Get temp storage grids from the FFT helper
+    qk1, qk2, qtmp = kgrid(plan,1), kgrid(plan,2), kgrid(plan,3)
 
 	# Calculate variation in partition function by looping over all chain contour segments
-	dQ = zeros(num_cell_params(cell))
-	for iblk = 1:num_blocks(chain)
+	dQ = zeros(nparams(cell))
+	for iblk = 1:nblocks(species)
 		# Block start and end indices
-		blk_bgn = chain.begin_block[iblk]
-		blk_end = chain.begin_block[iblk+1]
+		blk_bgn = species.begin_block[iblk]
+		blk_end = species.begin_block[iblk+1]
 
-		b = chain.b_block[iblk]
-		ds0 = chain.ds_block[iblk]
+		b = species.b_block[iblk]
+		ds0 = species.ds_block[iblk]
 
 		# Block start and end indices
 		for s = blk_bgn:blk_end
@@ -277,11 +266,11 @@ function scf_stress(chain::Multiblock)
 
             # FFT the propagators to k-space grids
             qs = q[s]; qcs = qc[s]
-            mul!(qk1, fft.FT, qs)
-            mul!(qk2, fft.FT, qcs)
+            mul!(qk1, plan.FT, qs)
+            mul!(qk2, plan.FT, qcs)
 
             # Apply dksq for each parameter
-            for k = 1:num_cell_params(cell)
+            for k = 1:nparams(cell)
                 dksq = cell.dksq[k]
                 @. qtmp = qk1 * dksq
 
@@ -294,7 +283,7 @@ function scf_stress(chain::Multiblock)
                     @inbounds qint += 2 * real(qk2[i]) * real(qtmp[i])
                 end
 
-                dQ[k] -= b^2 * ds * qint / 6.0 / num_grid(sys)^2
+                dQ[k] -= b^2 * ds * qint / 6.0 / ngrid(sys)^2
             end
 
 		end
@@ -302,7 +291,7 @@ function scf_stress(chain::Multiblock)
 
 	# Normalize stress after completion
 	dQ ./= 3.0 # Simpson's rule factor
-	dQ ./= chain.Q * chain.Nref # Stress formula normalization
+	dQ ./= species.Q * species.Nref # Stress formula normalization
 
     return dQ
 end

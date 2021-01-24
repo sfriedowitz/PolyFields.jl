@@ -3,6 +3,13 @@
 #==============================================================================#
 
 """
+    abstract type AbstractSystem
+
+Supertype for a field-theoretic system representing a physical model.
+"""
+abstract type AbstractSystem end
+
+"""
     abstract type AbstractConstraint
 
 Supertype for all physical constraints applied to a system.
@@ -15,6 +22,13 @@ abstract type AbstractConstraint end
 Supertype for all molecular species in a field-theoretic simulation.
 """
 abstract type AbstractSpecies end
+
+"""
+    abstract type AbstractPropagator
+
+Supertype for algorithms to evaluate species propagators under a given external field.
+"""
+abstract type AbstractPropagator end
 
 """
     abstract type AbstractInteraction
@@ -34,8 +48,9 @@ abstract type AbstractFieldUpdater end
 # Type definitions
 #==============================================================================#
 
-# 3D array grid alias
+# 3D array/shape alias
 const FieldGrid{T} = Array{T, 3}
+const FieldDims{T<:Integer} = NTuple{3,T}
 
 # Nullable union holder
 const Option{T} = Union{Nothing,T}

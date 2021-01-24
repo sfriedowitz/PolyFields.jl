@@ -1,53 +1,43 @@
 """
-    mutable struct ChiInteraction <: AbstractInteraction
+    mutable struct FloryInteraction <: AbstractInteraction
 
-An interaction representing a Flory-Huggins ``\\chi``-interaction
-between different monomer types.
+An interaction representing a Flory-Huggins ``\\chi``-interaction between different monomer types.
 
-The value of the ``\\chi``-parameter is specified with the `set_interaction!` method.
-``\\chi``-interactions between like-monomers are not allowed.
-
-### Constructors
-```
-ChiInteraction()
-```
+Calculates an interaction energy of the form:
+``H = (1/2) ∑_i ∑_j χ_{ij} ∫dr ϕ_i(r) ϕ_j(r)``
 """
-mutable struct ChiInteraction <: AbstractInteraction
+mutable struct FloryInteraction <: AbstractInteraction
     mids   :: Set{Int}
     chis   :: Dict{NTuple{2,Int}, Float64}
     system :: Option{FieldSystem}
-    ChiInteraction() = new(Set(), Dict(), nothing)
+    FloryInteraction() = new(Set(), Dict(), nothing)
 end
 
 #==============================================================================#
-# Methods
-#==============================================================================#
 
-Base.show(io::IO, itx::ChiInteraction) = @printf(io, "ChiInteraction(%d monomers, %s pairs)", length(itx.ids), length(itx.chis))
+Base.show(io::IO, itx::FloryInteraction) = @printf(io, "FloryInteraction(%d monomers, %s pairs)", length(itx.mids), length(itx.chis))
 
-function setup!(itx::ChiInteraction, sys::FieldSystem)
+function setup!(itx::FloryInteraction, sys::FieldSystem)
     itx.system = sys
     return nothing
 end
 
-function set_interaction!(itx::ChiInteraction, amon::Monomer, bmon::Monomer, chi::Real)
-    @assert amon.id != bmon.id
+function set_interaction(itx::FloryInteraction, alpha::Integer, beta::Integer, chi::Real)
+    @assert alpha != beta
+    pair = ordered_pair(alpha, beta)
 
-    mids = ordered_pair(amon.id, bmon.id)
     if haskey(itx.chis, mids)
         @warn "Replacing interaction for monomer pair with ids = $(mids)."
     end
 
-    push!(itx.mids, amon.id)
-    push!(itx.mids, bmon.id)
-    itx.chis[mids] = chi
+    push!(itx.mids, alpha)
+    push!(itx.mids, beta)
+    itx.chis[pair] = chi
 
     return nothing
 end
 
-#==============================================================================#
-
-function energy(itx::ChiInteraction)
+function energy(itx::FloryInteraction)
     @assert !isnothing(itx.system)
     sys = itx.system
     monomers = sys.monomers
@@ -70,10 +60,10 @@ function energy(itx::ChiInteraction)
         end
     end
 
-    return energy / num_grid(sys)
+    return energy/ngrid(sys)
 end 
 
-function energy_bulk(itx::ChiInteraction)
+function energy_bulk(itx::FloryInteraction)
     @assert !isnothing(itx.system)
     sys = itx.system
     monomers = sys.monomers
@@ -97,7 +87,7 @@ function energy_bulk(itx::ChiInteraction)
     return energy
 end
 
-function add_potential!(itx::ChiInteraction, alpha::Integer, pot::FieldGrid)
+function potential!(itx::FloryInteraction, alpha::Integer, pot::FieldGrid)
     @assert !isnothing(itx.system)
     sys = itx.system
     monomers = sys.monomers

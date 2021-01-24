@@ -1,3 +1,7 @@
+nmonomers(species::AbstractSpecies) = length(species.mids)
+
+hasmonomer(species::AbstractSpecies, mid::Integer) = mid in species.mids
+
 """
     density!(species)
 
@@ -5,9 +9,7 @@ Update the internal density fields for an `AbstractSpecies`.
 """
 density!(species::AbstractSpecies) = nothing
 
-nmon(species::AbstractSpecies) = length(species.mids)
-
-hasmon(species::AbstractSpecies, mid::Integer) = mid in species.mids
+monomerfraction(species::AbstractSpecies, mid::Integer) = 0.0
 
 #==============================================================================#
 

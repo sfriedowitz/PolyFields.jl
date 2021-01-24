@@ -1,58 +1,47 @@
 """
-	struct PseudoSpectralSolver
+	struct PseudoSpectralSolver <: AbstractPropagator
 
 An iteration scheme used for solving modified diffusion equations using pseudo-spectral Fourier methods.
-
-Parameter `method` specifies whether to use a second-order (RK2) or fourth-order (RQM4) time-stepping scheme.
-
-### Constructors
-```julia
-PseudoSpectralSolver(npw; method)
-PseudoSpectralSolver(Nx, Ny, Nz; method)
-```
+The `method` parameter specifies whether to use a second-order (:RK2) or fourth-order (:RQM4) time-stepping scheme.
 """
-struct PseudoSpectralSolver
-	npw    :: NTuple{3,Int}
-	method :: String
+struct PseudoSpectralSolver<: AbstractPropagator
+	dims   :: NTuple{3,Int}
+	method :: Symbol
 
 	# Operator grids for solving MDE
 	LW1    :: FieldGrid{Float64}
 	LW2    :: FieldGrid{Float64}
-	LD1    :: FieldGrid{Float64}
-	LD2    :: FieldGrid{Float64}
+	LD1    :: FieldGrid{Complex{Float64}}
+	LD2    :: FieldGrid{Complex{Float64}}
 end
 
-function PseudoSpectralSolver(npw::NTuple{3,<:Integer}; method::AbstractString = "RK2")
-	method = strip(uppercase(method))
-	if method != "RK2" && method != "RQM4"
+function PseudoSpectralSolver(dims::NTuple{3,<:Integer}; method::Symbol = :RK2)
+	if method != :RK2 && method != :RQM4
 		throw(ArgumentError("Invalid update method `$(method)` for PseudoSpectralSolver."))
 	end
 
 	# Operator grids
-	LW1 = zeros(Float64, npw)
-	LW2 = zeros(Float64, npw)
-	LD1 = zeros(Complex{Float64}, floor(Int, npw[1]/2 + 1), npw[2], npw[3])
-	LD2 = zeros(Complex{Float64}, floor(Int, npw[1]/2 + 1), npw[2], npw[3])
+	LW1 = zeros(Float64, dims)
+	LW2 = zeros(Float64, dims)
+	LD1 = zeros(Complex{Float64}, ksize(dims))
+	LD2 = zeros(Complex{Float64}, ksize(dims))
 
-	return PseudoSpectralSolver(npw, method, LW1, LW2, LD1, LD2)
+	return PseudoSpectralSolver(dims, method, LW1, LW2, LD1, LD2)
 end
 
 PseudoSpectralSolver(Nx::Integer, Ny::Integer, Nz::Integer; kwargs...) = PseudoSpectralSolver((Nx, Ny, Nz); kwargs...)
 
 #==============================================================================#
-# Methods
-#==============================================================================#
 
-Base.show(io::IO, solver::PseudoSpectralSolver) = @printf(io, "PseudoSpectralSolver(npw = %s)", solver.npw)
+Base.show(io::IO, solver::PseudoSpectralSolver) = @printf(io, "PseudoSpectralSolver(dims = %s)", solver.dims)
 
 """
 	update!(solver, omega, ksq, size, b, ds)
 
-Update differential operators for a given set of `omega` and `ksq` grids
-with specified monomer size and chain length parameters.
+Update differential operators for a given set of `omega` and `ksq` grids.
 """
 function update!(solver::PseudoSpectralSolver, omega::FieldGrid, ksq::FieldGrid, vbar::Real, b::Real, ds::Real)
-	@assert size(omega) == solver.npw
+	@assert size(omega) == solver.dims
 	@assert size(ksq) == size(solver.LD1)
 
 	lw_coeff = ds / 2.0
@@ -71,13 +60,13 @@ end
 	propagate!(solver, fft, qin, qout)
 
 Take one step forward along the chain propagator from input `qin` to output `qout`.
-Utilizes pre-allocated fast-Fourier transforms of the correct dimension from the provided `FFTBuddy`.
+Utilizes pre-allocated fast-Fourier transforms of the correct dimension from the provided `FFTHolder`.
 """
-function propagate!(solver::PseudoSpectralSolver, fft::FFTBuddy, qin::FieldGrid, qout::FieldGrid)
-	@assert solver.npw == fft.npw
+function propagate!(solver::PseudoSpectralSolver, plan::FFTHolder, qin::FieldGrid, qout::FieldGrid)
+	@assert solver.dims == plan.dims
 
 	# Offload params
-	FT, iFT = fft.FT, fft.iFT
+	FT, iFT = plan.FT, plan.iFT
 	LW1, LW2, LD1, LD2 = solver.LW1, solver.LW2, solver.LD1, solver.LD2
 
 	# Pre-allocated temp grids from FFT
