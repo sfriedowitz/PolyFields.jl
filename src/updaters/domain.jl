@@ -1,15 +1,13 @@
 """
     mutable struct DomainUpdater <: AbstractFieldUpdater
 
-    DomainUpdater(; lambda = 1.0, skip = 50)
+    DomainUpdater(; nper = 5, nskip = 100, lam = 0.1, pmax = 5.0, rlxn = 0.9)
 
 """
 mutable struct DomainUpdater <: AbstractFieldUpdater
-    nsteps    :: Int
+    nper      :: Int
     nskip     :: Int
-    verbose   :: Bool
     lam       :: Float64
-    tol       :: Float64
     pmax      :: Float64
     rlxn      :: Float64
 
@@ -19,15 +17,17 @@ mutable struct DomainUpdater <: AbstractFieldUpdater
     dstress   :: Matrix{Float64} # Jacobian matrix for cell parameters
     system    :: Option{FieldSystem}
 
-    function DomainUpdater(; nsteps::Integer = 50, nskip::Integer = 1, verbose::Bool = true,
-        lam::Real = 0.001, tol::Real = 1e-5, pmax::Real = 5.0, rlxn::Real = 0.9)
-        return new(nsteps, nskip, verbose, lam, tol, pmax, rlxn, [], [], [], zeros(0,0), nothing)
+    function DomainUpdater(; nper::Integer = 10, nskip::Integer = 200,
+        lam::Real = 0.1, pmax::Real = 1.0, rlxn::Real = 0.5)
+        return new(nper, nskip, lam, pmax, rlxn, [], [], [], zeros(0,0), nothing)
     end
 end
 
 #==============================================================================#
 
-Base.show(io::IO, domain::DomainUpdater) = @printf(io, "DomainUpdater(tol = %.1e, nskip = %d)", domain.tol, domain.nskip)
+Base.show(io::IO, domain::DomainUpdater) = @printf(io, "DomainUpdater(nper = %d, nskip = %d)", domain.nper, domain.nskip)
+
+stress_error(domain::DomainUpdater) = norm(domain.stress)
 
 function setup!(domain::DomainUpdater, sys::FieldSystem)
     domain.system = sys
@@ -41,24 +41,25 @@ function setup!(domain::DomainUpdater, sys::FieldSystem)
     return nothing
 end
 
-function step!(domain::DomainUpdater)
+function scfstress!(domain::DomainUpdater)
+    @assert !isnothing(domain.system)
+    domain.stress .= scfstress(domain.system)
+    return nothing
+end
+
+function step!(domain::DomainUpdater; nsteps::Integer = 1, tol::Real = 1e-5)
     @assert !isnothing(domain.system)
     sys = domain.system
     cell = sys.cell
 
-    # Calculate stress, Jacobian, and step direction
-    domain.stress .= scfstress(sys)
+    # Calculate current stress
+    scfstress!(domain)
+    err = stress_error(domain)
+
+    converged = false
     iter = 0
-    err = norm(domain.stress)
-    converged = err < domain.tol
 
-    if converged
-        return nothing
-    elseif domain.verbose
-        @printf("Relaxing cell for %d steps from initial stress norm: |σ| = %.3e.\n", iter, err)
-    end
-
-    while iter < domain.nsteps && !converged
+    while iter < nsteps && !converged
         dstress!(domain)
         if cell.dim == 1
             domain.step .= -1.0 * domain.stress[1] / domain.dstress[1]
@@ -77,21 +78,14 @@ function step!(domain::DomainUpdater)
         @. cell.params += domain.lam * domain.step
         @. cell.params = domain.rlxn*cell.params + (1 - domain.rlxn)*domain.oldparams
 
+        # Update to new stress
         update!(cell)
         density!(sys)
         residuals!(sys)
+        scfstress!(domain)
 
-        domain.stress .= scfstress(sys)
-
+        err = stress_error(domain)
         iter += 1
-        err = norm(domain.stress)
-        converged = err < domain.tol
-    end
-
-    if converged
-        @printf("Converged on step %d with stress norm: |σ| = %.3e.\n", iter, err)
-    else
-        @printf("Finished relaxation of %d steps with stress norm: |σ| = %.3e.\n", iter, err)
     end
 
     return nothing

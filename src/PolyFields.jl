@@ -36,11 +36,11 @@ export DomainUpdater, EulerUpdater, AndersonUpdater, MomentumUpdater
 
 # Methods
 export make_basis, basis_matrix, basis_dimensions
-export add_monomer!, add_species!, add_cell!, add_interaction!, validate
+export add_monomer!, add_species!, add_cell!, add_interaction!, set_interaction!, validate
 export density!, muphi!, potentials!, potential!, scfstress, scfstress!, uniform_fields!, residuals!
-export free_energy, free_energy_bulk, energy, energy_bulk, set_interaction!
-export step!, field_error, stress_error
-export fieldinit!, savefields, loadfields, scft!
+export free_energy, free_energy_bulk, energy, energy_bulk, scfstress, scfstress!, field_error, stress_error
+export step!, scft!, fieldinit!, savefields, loadfields, scft!
+export updater_with_system, relax_cell!
 
 #==============================================================================#
 # Load files

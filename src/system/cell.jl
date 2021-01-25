@@ -58,6 +58,11 @@ Base.show(io::IO, cell::UnitCell) = @printf(io, "Cell(dim = %d, V = %.2f)", cell
 
 nparams(cell::UnitCell) = length(cell.params)
 
+function paramstring(cell::UnitCell)
+    str_params = map(x -> @sprintf("%.3e",x), cell.params)
+    return "[" * join(str_params, ", ") * "]"
+end
+
 """
     setup!(cell, sys)
 

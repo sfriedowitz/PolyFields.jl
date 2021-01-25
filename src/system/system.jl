@@ -55,7 +55,8 @@ function FieldSystem(dims::NTuple{3,<:Integer}, cell::UnitCell;
 	fftplan = FFTHolder(dims; nthreads = nthreads)
 	solver = PseudoSpectralSolver(dims; method = mde)
 
-	sys = FieldSystem(dims, ensemble, cell, fftplan, solver,
+	sdims = Tuple(sort(collect(dims), rev = true))
+	sys = FieldSystem(sdims, ensemble, cell, fftplan, solver,
 		Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), [], [], [], [], 
 		compress
 	)

@@ -2,6 +2,8 @@
 # Utility functions
 #==============================================================================#
 
+ordered_pair(i::Integer, j::Integer) = i <= j ? (i, j) : (j, i)
+
 ndims(dims::NTuple{N,<:Integer}) where {N} = sum(dims .> 1)
 
 ksize(dims::NTuple{3,TI}) where {TI <: Integer} = (floor(TI, dims[1]/2+1), dims[2], dims[3])
@@ -10,8 +12,6 @@ function squeeze(A::AbstractArray)
     outshape = Tuple(s for s in size(A) if s > 1)
     return reshape(A, outshape)
 end
-
-ordered_pair(i::Integer, j::Integer) = i <= j ? (i, j) : (j, i)
 
 function determine_nthreads(size::Integer, serial_cut::Integer = 20000)
     return min(Threads.nthreads(), 1 + size÷serial_cut)
