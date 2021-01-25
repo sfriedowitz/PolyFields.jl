@@ -41,8 +41,6 @@ mutable struct MomentumUpdater <: AbstractFieldUpdater
 end
 
 #==============================================================================#
-# Methods
-#==============================================================================#
 
 Base.show(io::IO, updater::MomentumUpdater) = @printf(io, "MomentumUpdater(method = %s, lam = %.3g)", updater.method, updater.lam)
 
@@ -61,8 +59,6 @@ function setup!(updater::MomentumUpdater, sys::FieldSystem)
 
 	return nothing
 end
-
-#==============================================================================#
 
 function step!(updater::MomentumUpdater)
 	@assert !isnothing(updater.system)

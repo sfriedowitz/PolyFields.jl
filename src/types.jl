@@ -50,7 +50,6 @@ abstract type AbstractFieldUpdater end
 
 # 3D array/shape alias
 const FieldGrid{T} = Array{T, 3}
-const FieldDims{T<:Integer} = NTuple{3,T}
 
 # Nullable union holder
 const Option{T} = Union{Nothing,T}

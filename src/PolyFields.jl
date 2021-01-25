@@ -15,6 +15,7 @@ import Dates
 using Printf
 using JSON
 using Parameters
+using RecipesBase
 
 using Random
 using StaticArrays
@@ -27,7 +28,7 @@ using FFTW
 
 # Types
 export AbstractSystem, AbstractSpecies, AbstractConstraint, AbstractPropagator, AbstractInteraction, AbstractFieldUpdater
-export FieldGrid, FieldDims, PseudoSpectralSolver, FFTHolder, UnitCell
+export FieldGrid, PseudoSpectralSolver, FFTHolder, UnitCell
 export Monomer, Point, Homopolymer, Diblock, Multiblock
 export FloryInteraction, EdwardsInteraction
 export Ensemble, Canonical, Grand, Compressibility

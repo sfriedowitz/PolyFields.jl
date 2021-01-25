@@ -48,8 +48,6 @@ mutable struct AndersonUpdater <: AbstractFieldUpdater
 end
 
 #==============================================================================#
-# Methods
-#==============================================================================#
 
 Base.show(io::IO, updater::AndersonUpdater) = @printf(io, "AndersonUpdater(nhist = %d, iter = %d)", updater.nhist, updater.iter)
 
