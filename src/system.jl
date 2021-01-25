@@ -70,8 +70,6 @@ end
 FieldSystem(nx::Integer, ny::Integer, nz::Integer, cell::Cell; kwargs...) = FieldSystem((nx, ny, nz), cell; kwargs...)
 
 #==============================================================================#
-# Methods
-#==============================================================================#
 
 function Base.show(io::IO, sys::FieldSystem)
 	@printf(io, "FieldSystem(dims = %s, ensemble = %s, %d monomers, %d species)", 
@@ -143,6 +141,9 @@ function add_species!(sys::FieldSystem, species::AbstractSpecies, val::Real)
 
 	# Add value based on ensemble of simulation
 	if sys.ensemble == Canonical
+		if val <= 0.0
+			error("Bulk volume fraction must be 0 < phi <= 1.")
+		end
 		push!(sys.phi_species, val)
 		push!(sys.mu_species, 0.0)
 	elseif sys.ensemble == Grand
@@ -301,7 +302,7 @@ end
 """
 	potentials!(sys)
 
-Compute differentials of the excess interactions with respect to each density field: ``δH_{ex}/δϕ_α``.
+Compute differentials of the excess interactions with respect to each density field.
 """
 function potentials!(sys::FieldSystem)
 	# Zero current potentials
@@ -314,24 +315,6 @@ function potentials!(sys::FieldSystem)
 		for itx in sys.interactions
 			potential!(itx, mid, pot)
 		end
-	end
-
-	return nothing
-end
-
-"""
-	scfstress!(sys)
-
-Compute the free energy variation of the system with respect to each cell parameter.
-"""
-function scfstress!(sys::FieldSystem)
-	# Reset to zero
-	sys.stress .= 0.0
-
-	# Add stress from each contributing species
-	for (isp, species) in enumerate(sys.species)
-		phi = sys.phi_species[isp]
-		sys.stress .-= phi * scfstress(species)
 	end
 
 	return nothing
@@ -355,6 +338,24 @@ function residuals!(sys::FieldSystem)
         if sys.ensemble == Canonical; res .-= mean(res); end
 	end
     
+	return nothing
+end
+
+"""
+	scfstress!(sys)
+
+Compute the free energy variation of the system with respect to each cell parameter.
+"""
+function scfstress!(sys::FieldSystem)
+	# Reset to zero
+	sys.stress .= 0.0
+
+	# Add stress from each contributing species
+	for (isp, species) in enumerate(sys.species)
+		phi = sys.phi_species[isp]
+		sys.stress .-= phi * scfstress(species)
+	end
+
 	return nothing
 end
 
@@ -398,11 +399,11 @@ end
 """
     field_error(sys)
 
-Compute the error of the current residuals and the field configurations.
+Compute the weighted error based on the current field residuals.
 
 Follows the definition in the Matsen (2009) Anderson mixing papers:
 ``
-ϵ = [∑_{α,i} r_{α,i}^2 / ∑_{α,i} ω_{α,i}^2]^{1/2}
+{\\rm err} = [∑_{α,i} {\\rm res}_{α,i}^2 / ∑_{α,i} ω_{α,i}^2]^{1/2}
 ``
 """
 function field_error(sys::FieldSystem)
@@ -426,17 +427,9 @@ end
 """
     stress_error(sys)
 
-Compute the error related to stress in the system as the absolute value of the maximum stress component.
+Compute the maximum stress parameter in the system.
 """
-function stress_error(sys::FieldSystem)
-	max_val = 0.0
-	for s in sys.stress
-		if abs(s) > max_val
-			max_val = abs(s)
-		end
-	end
-	return max_val
-end
+stress_error(sys::FieldSystem) = maximum(abs.(sys.cell.dparams))
 
 """
 	free_energy(sys)
@@ -493,7 +486,7 @@ function free_energy_bulk(sys::FieldSystem)
 	end
 
 	# Add the excess interaction energy
-	bulkfractions!(sys)
+	monomer_fractions!(sys)
 	for itx in sys.interactions
 		fhelm += energy_bulk(itx)
 	end

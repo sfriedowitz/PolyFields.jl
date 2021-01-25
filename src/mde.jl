@@ -73,14 +73,14 @@ function propagate!(solver::PseudoSpectralSolver, plan::FFTHolder, qin::FieldGri
 	q1, q2, qr = rgrid(plan, 1), rgrid(plan, 2), rgrid(plan, 3)
 	qk = kgrid(plan, 1)
 
-	if solver.method == "RK2"
+	if solver.method == :RK2
 		@. qr = LW1 * qin
 		mul!(qk, FT, qr)
 		@. qk *= LD1
 		mul!(qr, iFT, qk)
 		@. qout = LW1 * qr
 
-	elseif solver.method == "RQM4"
+	elseif solver.method == :RQM4
 		# Full step
 		@. qr = LW1 * qin
 		mul!(qk, FT, qr)

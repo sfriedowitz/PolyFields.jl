@@ -78,43 +78,43 @@ end
 
 #==============================================================================#
 
-function Base.show(io::IO, species::Multiblock)
-	if nblocks(species) == 1
-        @printf(io, "Homopolymer(mid = %d, N = %d)", species.mids[1], species.N)
-    elseif nblocks(species) == 2
-        @printf(io, "Diblock(mids = %s, N = %d, f = [%.3f, %.3f])", species.mids, species.N, species.f_block[1], species.f_block[2])
+function Base.show(io::IO, chain::Multiblock)
+	if nblocks(chain) == 1
+        @printf(io, "Homopolymer(mid = %d, N = %d)", chain.mids[1], chain.N)
+    elseif nblocks(chain) == 2
+        @printf(io, "Diblock(mids = %s, N = %d, f = [%.3f, %.3f])", chain.mids, chain.N, chain.f_block[1], chain.f_block[2])
     else
-        @printf(io, "Multiblock(%d blocks, %d monomers, N = %d)", num_monomers(chain), nblocks(species), species.N)
+        @printf(io, "Multiblock(%d blocks, %d monomers, N = %d)", num_monomers(chain), nblocks(chain), chain.N)
     end
 end
 
-nblocks(species::Multiblock) = length(species.N_block)
+nblocks(chain::Multiblock) = length(chain.N_block)
 
-function monomer_fraction(species::Multiblock, mid::Integer)
+function monomer_fraction(chain::Multiblock, mid::Integer)
 	# Check if mid present
-	if !hasmonomer(species, mid); return 0.0; end
+	if !hasmonomer(chain, mid); return 0.0; end
 	# It has the mid, so calculate fraction
 	f = 0.0
-	for iblk in species.mid_map[mid]
-		f += species.f_block[iblk]
+	for iblk in chain.mid_map[mid]
+		f += chain.f_block[iblk]
 	end
 	return f
 end
 
-function setup!(species::Multiblock, sys::FieldSystem)
-    species.system = sys
+function setup!(chain::Multiblock, sys::FieldSystem)
+    chain.system = sys
 
 	# Setup propagators
-	species.Q = 0.0
-	species.q = [zeros(Float64, sys.dims) for n = 1:species.Ns+1]
-	species.qc = [zeros(Float64, sys.dims) for n = 1:species.Ns+1]
+	chain.Q = 0.0
+	chain.q = [zeros(Float64, sys.dims) for n = 1:chain.Ns+1]
+	chain.qc = [zeros(Float64, sys.dims) for n = 1:chain.Ns+1]
 
 	# Setup density grids
-	for mid in species.mids
-		species.density[mid] = zeros(Float64, sys.dims)
+	for mid in chain.mids
+		chain.density[mid] = zeros(Float64, sys.dims)
 	end
-	for iblk = 1:nblocks(species)
-		species.density_block[iblk] = zeros(Float64, sys.dims)
+	for iblk = 1:nblocks(chain)
+		chain.density_block[iblk] = zeros(Float64, sys.dims)
 	end
 
 	return nothing
@@ -122,70 +122,70 @@ end
 
 #==============================================================================#
 
-function density!(species::Multiblock)
-	@assert !isnothing(species.system)
-	sys = species.system
+function density!(chain::Multiblock)
+	@assert !isnothing(chain.system)
+	sys = chain.system
     plan = sys.fftplan
 
 	# Necessary class fields
-	q, qc = species.q, species.qc
+	q, qc = chain.q, chain.qc
 	solver = sys.solver
 	ksq = sys.cell.ksq
 
 	# Solve q by integrating forward along chain
 	q[1] .= 1.0
-	for iblk = 1:nblocks(species)
-		b = species.b_block[iblk]
-		ds = species.ds_block[iblk]
+	for iblk = 1:nblocks(chain)
+		b = chain.b_block[iblk]
+		ds = chain.ds_block[iblk]
 
-		mid = species.mid_block[iblk]
+		mid = chain.mid_block[iblk]
 		mon = sys.monomers[mid]
 		omega = sys.fields[mid]
 
 		update!(solver, omega, ksq, mon.vol, b, ds)
-		for s = species.begin_block[iblk] : species.begin_block[iblk+1]-1
+		for s = chain.begin_block[iblk] : chain.begin_block[iblk+1]-1
 			propagate!(solver, plan, q[s], q[s+1])
 		end
 	end
 
 	# Solve qc by integrating reverse along the chain
     # If a homopolymer, short-cut the integration and copy the propagator in reverse
-    if nblocks(species) == 1
+    if nblocks(chain) == 1
         for (s, qi) in enumerate(Iterators.reverse(q))
             @inbounds qc[s] .= qi
         end
     else
     	qc[end] .= 1.0
-    	for iblk = nblocks(species):-1:1
-    		b = species.b_block[iblk]
-    		ds = species.ds_block[iblk]
+    	for iblk = nblocks(chain):-1:1
+    		b = chain.b_block[iblk]
+    		ds = chain.ds_block[iblk]
 
-			mid = species.mid_block[iblk]
+			mid = chain.mid_block[iblk]
 			mon = sys.monomers[mid]
 			omega = sys.fields[mid]
 
     		update!(solver, omega, ksq, mon.vol, b, ds)
-    		for s = species.begin_block[iblk+1] : -1 : species.begin_block[iblk]+1
+    		for s = chain.begin_block[iblk+1] : -1 : chain.begin_block[iblk]+1
     			propagate!(solver, plan, qc[s], qc[s-1])
     		end
     	end
     end
 
 	# Partition function
-	species.Q = sum(species.q[end]) / ngrid(sys)
+	chain.Q = sum(chain.q[end]) / ngrid(sys)
 
 	# Integrate density w/ Simpson's rule
 	# Reset density grids
-	for rho in values(species.density); rho .= 0.0; end
-	for rho in values(species.density_block); rho .= 0.0; end
+	for rho in values(chain.density); rho .= 0.0; end
+	for rho in values(chain.density_block); rho .= 0.0; end
 
-	for iblk = 1:nblocks(species)
+	for iblk = 1:nblocks(chain)
 		# Block start and end indices
-		blk_bgn = species.begin_block[iblk]
-		blk_end = species.begin_block[iblk+1]
+		blk_bgn = chain.begin_block[iblk]
+		blk_end = chain.begin_block[iblk+1]
 
-		ds = species.ds_block[iblk]
-		rho = species.density_block[iblk]
+		ds = chain.ds_block[iblk]
+		rho = chain.density_block[iblk]
 
 		# First and last
 		@simd for i in eachindex(rho)
@@ -216,39 +216,39 @@ function density!(species::Multiblock)
 	end
 
     # Normalize by 1/(Q*N)
-    for rho in values(species.density_block)
-        rho ./= species.Q * species.Nref
+    for rho in values(chain.density_block)
+        rho ./= chain.Q * chain.Nref
     end
 
 	# Add each block density to appropriate monomer type
-	for mid in species.mids
-		for iblk in species.mid_map[mid]
-			species.density[mid] .+= species.density_block[iblk]
+	for mid in chain.mids
+		for iblk in chain.mid_map[mid]
+			chain.density[mid] .+= chain.density_block[iblk]
 		end
 	end
 
 	return nothing
 end
 
-function scfstress(species::Multiblock)
-	@assert !isnothing(species.system)
-	sys = species.system
+function scfstress(chain::Multiblock)
+	@assert !isnothing(chain.system)
+	sys = chain.system
 	cell = sys.cell
 	plan = sys.fftplan
-	q, qc = species.q, species.qc
+	q, qc = chain.q, chain.qc
 
     # Get temp storage grids from the FFT helper
     qk1, qk2, qtmp = kgrid(plan,1), kgrid(plan,2), kgrid(plan,3)
 
 	# Calculate variation in partition function by looping over all chain contour segments
 	dQ = zeros(nparams(cell))
-	for iblk = 1:nblocks(species)
+	for iblk = 1:nblocks(chain)
 		# Block start and end indices
-		blk_bgn = species.begin_block[iblk]
-		blk_end = species.begin_block[iblk+1]
+		blk_bgn = chain.begin_block[iblk]
+		blk_end = chain.begin_block[iblk+1]
 
-		b = species.b_block[iblk]
-		ds0 = species.ds_block[iblk]
+		b = chain.b_block[iblk]
+		ds0 = chain.ds_block[iblk]
 
 		# Block start and end indices
 		for s = blk_bgn:blk_end
@@ -289,7 +289,7 @@ function scfstress(species::Multiblock)
 
 	# Normalize stress after completion
 	dQ ./= 3.0 # Simpson's rule factor
-	dQ ./= species.Q * species.Nref # Stress formula normalization
+	dQ ./= chain.Q * chain.Nref # Stress formula normalization
 
     return dQ
 end

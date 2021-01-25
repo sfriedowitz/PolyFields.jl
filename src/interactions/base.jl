@@ -3,7 +3,9 @@
 
 Set interaction parameters for the whole interaction or specific monomers.
 """
-set_interaction!(its::AbstractInteraction, args...) = nothing
+set_interaction!(itx::AbstractInteraction, args...) = nothing
+set_interaction!(itx::AbstractInteraction, mon::Monomer, args...) = set_interaction!(itx, mon.id, args...)
+set_interaction!(itx::AbstractInteraction, mon1::Monomer, mon2::Monomer, args...) = set_interaction!(itx, mon1.id, mon2.id, args...)
 
 """
     energy(itx)
@@ -25,3 +27,5 @@ bulk_energy(itx::AbstractInteraction) = nothing
 Add the potential contribution for monomer ID `alpha` to the grid.
 """
 potential!(itx::AbstractInteraction, alpha::Integer, pot::FieldGrid) = nothing
+
+setup!(itx::AbstractInteraction, sys::AbstractSystem)  = nothing

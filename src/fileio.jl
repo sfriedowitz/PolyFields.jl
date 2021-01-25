@@ -11,7 +11,7 @@ Initialize fields for all monomer types in the system.
 Fields can be initialized randomly with no provided data,
 loaded from a field dictionary, or loaded from file.
 """
-function fieldinit!(sys::FieldSystem; seed::Integer = -1, scale::Real = 1.0)
+function fieldinit!(sys::FieldSystem; seed::Integer = -1, scale::Real = 0.1)
     if seed >= 0
         Random.seed!(seed)
     end

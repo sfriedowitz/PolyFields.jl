@@ -22,35 +22,34 @@ mutable struct Point <: AbstractSpecies
 end
 
 #==============================================================================#
-# Methods
-#==============================================================================#
 
-Base.show(io::IO, species::Point) = @printf(io, "Point(mid = %d)", species.mids[1])
+Base.show(io::IO, point::Point) = @printf(io, "Point(mid = %d)", point.mids[1])
 
-monomer_fraction(species::Point, mid::Integer) = hasmonomer(species, mid) ? 1.0 : 0.0
+monomer_fraction(point::Point, mid::Integer) = hasmonomer(point, mid) ? 1.0 : 0.0
 
-function setup!(species::Point, sys::FieldSystem)
-	species.system = sys
-	species.Q = 0.0
-	species.density[species.mid[1]] = zeros(Float64, dims)
+function setup!(point::Point, sys::FieldSystem)
+	point.system = sys
+	point.Q = 0.0
+	point.density[point.mids[1]] = zeros(Float64, sys.dims)
 end
 
-function density!(species::Point)
-	@assert !isnothing(species.system)
-	sys = species.system
-	mon = sys.monomers[species.mids[1]]
+function density!(point::Point)
+	@assert !isnothing(point.system)
+	sys = point.system
+	mon = sys.monomers[point.mids[1]]
+	omega = sys.fields[mon.id]
 
 	# Partition function via Boltzmann weight
 	Q = 0.0
 	@simd for i in eachindex(omega)
 		@inbounds Q += exp(-mon.vol * omega[i])
 	end
-	species.Q = Q / ngrid(sys) # Normalize by number of grid points
+	point.Q = Q / ngrid(sys) # Normalize by number of grid points
 
-	# Update species density field
-	@. species.density[mon.id] = exp(-mon.vol * omega) / point.Q
+	# Update point density field
+	@. point.density[mon.id] = exp(-mon.vol * omega) / point.Q
 
 	return nothing
 end
 
-scfstress(species::Point, cell::Cell) = zeros(nparams(cell))
+scfstress(point::Point, cell::Cell) = zeros(nparams(cell))

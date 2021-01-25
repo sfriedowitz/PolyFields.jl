@@ -35,7 +35,6 @@ export FieldSystem, SCFTOptions, SCFTResults
 export DomainUpdater, EulerUpdater, AndersonUpdater, MomentumUpdater
 
 # Methods
-export setup!, update!, set_interaction
 export add_monomer!, add_species!, add_interaction!, add_constraint!, validate
 export density!, muphi!, potentials!, potential!, scfstress, scfstress!, uniform_fields!, residuals!
 export free_energy, free_energy_bulk, energy, energy_bulk, set_interaction!
@@ -55,8 +54,7 @@ include("cell.jl")
 include("monomer.jl")
 
 # System fields
-include("system/system.jl")
-include("system/constraints.jl")
+include("system.jl")
 
 # Species architectures
 include("species/base.jl")
@@ -69,6 +67,7 @@ include("interactions/flory.jl")
 include("interactions/edwards.jl")
 
 # # Field updaters
+include("constraints.jl")
 include("updaters/base.jl")
 # include("updaters/constraint.jl")
 # include("updaters/domain.jl")

@@ -1,12 +1,3 @@
-function setup!(cons::AbstractConstraint, sys::AbstractSystem)
-    c.system = sys
-    c.field = zeros(Float64, sys.dims)
-    return nothing
-end
-
-#==============================================================================#
-
-
 """
     Compressibility(; inv_zeta = 0.0)
 
@@ -68,4 +59,12 @@ mutable struct Electroneutrality <: AbstractConstraint
         electroneutral = inv_zeta ≈ 0.0 ? true : false
         return new(inv_zeta, electroneutral)
     end
+end
+
+#==============================================================================#
+
+function setup!(cons::AbstractConstraint, sys::AbstractSystem)
+    c.system = sys
+    c.field = zeros(Float64, sys.dims)
+    return nothing
 end

@@ -1,5 +1,5 @@
 #==============================================================================#
-# Core SCFT simulation routine
+# SCFT Simulation
 #==============================================================================#
 
 """
@@ -7,18 +7,35 @@
 
 Input options for an SCFT calculation.
 
-### Constructors
-```
-SCFTOptions(; nsteps = 1000, nsout = 0, nsave = -1, domain = true, rtol = 1e-5, stol = 1e-5, field_out = "")
-```
+Defaults:
+* steps = 1000
+* nsout = 0
+* nsave = 0
+* fpath = ""
+* ftol = 1e-5
+* stol = 1e-5
+* domain = false
 """
-@with_kw struct SCFTOptions
-	nsteps    :: Int = 1000
-	nsout     :: Int = 0
-	nsave	  :: Int = -1
-	field_out :: String = ""
-	rtol      :: Float64 = 1e-5
-	stol      :: Float64 = 1e-5    
+struct SCFTOptions
+	nsteps    :: Int
+	nsout     :: Int
+	nsave	  :: Int
+	field_out :: String
+	rtol      :: Float64
+	stol      :: Float64
+	domain    :: Bool
+
+	function SCFTOptions(; kwargs...)
+		return new(
+			get(kwargs, :steps, 1000),
+			get(kwargs, :nsout, 0),
+			get(kwargs, :nsave, 0),
+			get(kwargs, :fpath, ""),
+			get(kwargs, :ftol, 1e-5),
+			get(kwargs, :stol, 1e-5),
+			get(kwargs, :domain, false)
+		)
+	end
 end
 
 """
@@ -26,7 +43,7 @@ end
 
 Container for a summary of output from an SCFT calculation.
 """
-@with_kw struct SCFTResults
+struct SCFTResults
 	time      :: Float64
 	nsteps    :: Int
 	converged :: Bool
@@ -47,13 +64,9 @@ to ensure all fields are properly initialized.
 Return a summary of the numerical optimization scheme as an `SCFTResults` struct
 after the computation has finished.
 """
-function scft!(
-	sys::FieldSystem, 
-	updater::AbstractFieldUpdater,
-	domain::Option{DomainUpdater} = nothing
-	; 
-	opts::SCFTOptions = SCFTOptions()
-)
+function scft!(sys::FieldSystem, updater::AbstractFieldUpdater, domain::Option{DomainUpdater} = nothing; 
+	opts::SCFTOptions = SCFTOptions())
+
 	sim_time = @elapsed begin
 		# Validate and initial setup
 		validate(sys)

@@ -11,11 +11,6 @@ Update the internal density fields for an `AbstractSpecies`.
 """
 density!(species::AbstractSpecies) = nothing
 
-"""
-    setup!(species, sys)
-
-Setup internal state of the species for the provided system.
-"""
 setup!(species::AbstractSpecies, sys::FieldSystem) = nothing
 
 #==============================================================================#
