@@ -40,7 +40,7 @@ function fieldinit!(sys::FieldSystem, fields::Dict; field_type::Symbol = :omega,
                 error("Input field dimensions $(size(arr)) does not match system grid $(sys.dims).")
             end
         else
-            @warn "Monomer id = $(mid) not present in system -- skipping."
+            @warn "Monomer with ID = $(mid) not present in system -- skipping."
         end
     end 
 

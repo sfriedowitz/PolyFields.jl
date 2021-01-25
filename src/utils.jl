@@ -2,7 +2,7 @@
 # Utility functions
 #==============================================================================#
 
-ndims(dims::NTuple{3,<:Integer}) = sum(dims .> 1)
+ndims(dims::NTuple{N,<:Integer}) where {N} = sum(dims .> 1)
 
 ksize(dims::NTuple{3,TI}) where {TI <: Integer} = (floor(TI, dims[1]/2+1), dims[2], dims[3])
 
@@ -131,10 +131,10 @@ function interpolate_grid(grid::FieldGrid{TF}, outshape::NTuple{3,<:Integer}) wh
 
     sqz = squeeze(grid)
     itp = interpolate(sqz, BSpline(Cubic(Line(OnGrid()))))
-    itp_dim = ndims(itp)
+    itp_dim = ndims(size(itp))
 
-    in_single = singledims(inshape)
-    out_single = singledims(outshape)
+    in_single = Tuple(i for i = 1:3 if inshape[i] == 1)
+    out_single = Tuple(i for i = 1:3 if outshape[i] == 1)
     if in_single != out_single
         @warn "Interpolating to different dimensions -- output array may be inaccurate."
     end
