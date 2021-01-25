@@ -52,4 +52,4 @@ function density!(point::Point)
 	return nothing
 end
 
-scfstress(point::Point, cell::Cell) = zeros(nparams(cell))
+scfstress(point::Point, cell::UnitCell) = zeros(nparams(cell))

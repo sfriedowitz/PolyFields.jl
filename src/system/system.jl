@@ -15,14 +15,15 @@ end
 """
 	mutable struct FieldSystem <: AbstractSystem
 
-A system containing data for a field-theoretic calculation.
-Contains all species, field, density, and monomer type information.
+A system containing data for a field-theoretic simulation,
+represented as a set of species, field grids, and a corresponding unit cell.
+Contains all species, field, density, and interaction information.
 """
 mutable struct FieldSystem <: AbstractSystem
 	# Grid and cell
 	dims          :: NTuple{3,Int}
 	ensemble      :: Ensemble 
-	cell          :: Cell
+	cell          :: UnitCell
 
 	# MDE and FFT
 	fftplan       :: FFTHolder
@@ -47,7 +48,7 @@ mutable struct FieldSystem <: AbstractSystem
 	compress      :: Compressibility
 end
 
-function FieldSystem(dims::NTuple{3,<:Integer}, cell::Cell;
+function FieldSystem(dims::NTuple{3,<:Integer}, cell::UnitCell;
 	monomers = Monomer[], ensemble::Ensemble = Canonical, 
 	compress = Compressibility(0.0), mde::Symbol = :RK2, nthreads::Integer = -1)
 	# Create FFT and MDE solver
@@ -71,7 +72,7 @@ function FieldSystem(dims::NTuple{3,<:Integer}, cell::Cell;
 	return sys
 end
 
-FieldSystem(nx::Integer, ny::Integer, nz::Integer, cell::Cell; kwargs...) = FieldSystem((nx, ny, nz), cell; kwargs...)
+FieldSystem(nx::Integer, ny::Integer, nz::Integer, cell::UnitCell; kwargs...) = FieldSystem((nx, ny, nz), cell; kwargs...)
 
 #==============================================================================#
 
@@ -97,7 +98,7 @@ hasmonomer(sys::FieldSystem, mid::Integer) = haskey(sys.monomers, mid)
 
 Provide a new cell for the system.
 """
-function add_cell!(sys::FieldSystem, cell::Cell)
+function add_cell!(sys::FieldSystem, cell::UnitCell)
 	sys.cell = cell
 	setup!(cell, sys)
 	return nothing

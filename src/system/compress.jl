@@ -8,7 +8,7 @@ A local incompressibility constraint on each grid point in a system.
 Parameter `inv_zeta` controls how incompressibility is treated:
 * ``ζ^{-1} = 0.0``: System is treated as incompressible
 * ``ζ^{-1} > 0.0``: System is treated as compressible with bulk modulus ``ζ``
-* ``ζ^{-1} < 0.0``: Incompressibility is not enforced at all
+* ``ζ^{-1} < 0.0``: Incompressibility is not enforced
 """
 mutable struct Compressibility <: AbstractConstraint
     inv_zeta :: Float64
@@ -44,6 +44,7 @@ function update!(c::Compressibility)
         @. c.rhosum += rho
     end
 
+    c.field .= 0.0
     if c.strict
         # Incmpressible system
         @. c.field = c.rhosum - 1.0

@@ -24,3 +24,4 @@ using PolyFields
 * Fix variable cell updater
 * Revamp constructors for unit cell class
 * GCE performance and stability
+* Add FDDD2 crystal systems, more generic format for basis construction

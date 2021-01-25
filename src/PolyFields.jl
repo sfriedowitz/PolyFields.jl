@@ -20,7 +20,6 @@ using Random
 using StaticArrays
 using Interpolations
 using FFTW
-using LineSearches
 
 #==============================================================================#
 # Exports
@@ -28,7 +27,7 @@ using LineSearches
 
 # Types
 export AbstractSystem, AbstractSpecies, AbstractConstraint, AbstractPropagator, AbstractInteraction, AbstractFieldUpdater
-export FieldGrid, FieldDims, Cell, Cell1D, Cell2D, Cell3D, FFTHolder, PseudoSpectralSolver
+export FieldGrid, FieldDims, PseudoSpectralSolver, FFTHolder, UnitCell
 export Monomer, Point, Homopolymer, Diblock, Multiblock
 export FloryInteraction, EdwardsInteraction
 export Ensemble, Canonical, Grand, Compressibility
@@ -36,6 +35,7 @@ export FieldSystem, SCFTOptions, SCFTResults
 export DomainUpdater, EulerUpdater, AndersonUpdater, MomentumUpdater
 
 # Methods
+export make_basis, basis_matrix, basis_dimensions
 export add_monomer!, add_species!, add_cell!, add_interaction!, validate
 export density!, muphi!, potentials!, potential!, scfstress, scfstress!, uniform_fields!, residuals!
 export free_energy, free_energy_bulk, energy, energy_bulk, set_interaction!
@@ -51,30 +51,33 @@ include("types.jl")
 include("utils.jl")
 include("fft.jl")
 include("mde.jl")
-include("cell.jl")
 include("monomer.jl")
-include("compress.jl")
-include("system.jl")
 
-# Species architectures
-include("species/base.jl")
-include("species/point.jl")
-include("species/multiblock.jl")
+# Cell and system
+include("system/basis.jl")
+include("system/cell.jl")
+# include("system/compress.jl")
+# include("system/system.jl")
 
-# # Interaction classes
-include("interactions/base.jl")
-include("interactions/flory.jl")
-include("interactions/edwards.jl")
+# # Species architectures
+# include("species/base.jl")
+# include("species/point.jl")
+# include("species/multiblock.jl")
 
-# # Field updaters
-include("updaters/base.jl")
-include("updaters/euler.jl")
-include("updaters/anderson.jl")
-include("updaters/momentum.jl")
-# include("updaters/domain.jl")
+# # # Interaction classes
+# include("interactions/base.jl")
+# include("interactions/flory.jl")
+# include("interactions/edwards.jl")
 
-include("fileio.jl")
-include("simulate.jl")
-# include("plots.jl")
+# # # Field updaters
+# include("updaters/base.jl")
+# include("updaters/euler.jl")
+# include("updaters/anderson.jl")
+# include("updaters/momentum.jl")
+# # include("updaters/domain.jl")
+
+# include("fileio.jl")
+# include("simulate.jl")
+# # include("plots.jl")
 
 end
