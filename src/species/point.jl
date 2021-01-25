@@ -17,7 +17,7 @@ mutable struct Point <: AbstractSpecies
 	system   :: Option{FieldSystem}
 
 	function Point(mon::Monomer)
-		return new([mon.id], mon.vol, 0.0, Dict())
+		return new([mon.id], mon.vol, 0.0, Dict(), nothing)
 	end
 end
 
@@ -52,4 +52,7 @@ function density!(point::Point)
 	return nothing
 end
 
-scfstress(point::Point, cell::UnitCell) = zeros(nparams(cell))
+function scfstress(point::Point)
+	@assert !isnothing(point.system)
+	return zeros(nparams(sys.cell))
+end

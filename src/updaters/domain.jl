@@ -1,72 +1,65 @@
 """
+    mutable struct DomainUpdater <: AbstractFieldUpdater
+
     DomainUpdater(; lambda = 1.0, skip = 50)
 
 """
-mutable struct DomainUpdater
-    tol         :: Float64
-    skip        :: Int
+mutable struct DomainUpdater <: AbstractFieldUpdater
+    nsteps    :: Int
+    nskip     :: Int
+    verbose   :: Bool
+    lam       :: Float64
+    tol       :: Float64
+    pmax      :: Float64
+    rlxn      :: Float64
 
-    old_params  :: Vector{Float64}
-    step        :: Vector{Float64} # Newton step
-    stress      :: Vector{Float64} # First derivative of free energy
-    dstress     :: Matrix{Float64} # Jacobian matrix for cell parameters
-    system      :: Option{FieldSystem}
+    oldparams :: Vector{Float64}
+    step      :: Vector{Float64} # Newton step
+    stress    :: Vector{Float64} # First derivative of free energy
+    dstress   :: Matrix{Float64} # Jacobian matrix for cell parameters
+    system    :: Option{FieldSystem}
 
-    function DomainUpdater(; tol::Real = 1e-4, skip::Integer = 1)
-        return new(tol, skip, [], [], [], zeros(0,0), nothing)
+    function DomainUpdater(; nsteps::Integer = 50, nskip::Integer = 1, verbose::Bool = true,
+        lam::Real = 0.001, tol::Real = 1e-5, pmax::Real = 5.0, rlxn::Real = 0.9)
+        return new(nsteps, nskip, verbose, lam, tol, pmax, rlxn, [], [], [], zeros(0,0), nothing)
     end
 end
 
 #==============================================================================#
-# Constructors
-#==============================================================================#
 
-function DomainUpdater(sys::FieldSystem)
-    nparams = num_cell_params(sys.cell)
-    old_params = zeros(nparams)
-
-    # Initial updater fields
-    stress = scf_stress(sys)
-    step = zeros(nparams)
-    dstress = zeros(nparams, nparams)
-
-    return DomainUpdater(sys, old_params, step, stress, dstress)
-end
-
-#==============================================================================#
-# Methods
-#==============================================================================#
-
-Base.show(io::IO, domain::DomainUpdater) = @printf(io, "DomainUpdater(tol = %.3e, skip = %d)", domain.tol, domain.skip)
+Base.show(io::IO, domain::DomainUpdater) = @printf(io, "DomainUpdater(tol = %.1e, nskip = %d)", domain.tol, domain.nskip)
 
 function setup!(domain::DomainUpdater, sys::FieldSystem)
     domain.system = sys
-    nparams = num_cell_params(sys.cell)
 
-    domain.stress = scf_stress(sys)
-    domain.old_params = zeros(nparams)
-    domain.step = zeros(nparams)
-    domain.dstress = zeros(nparams, nparams)
+    npr = nparams(sys.cell)
+    domain.stress = scfstress(sys)
+    domain.oldparams = zeros(npr)
+    domain.step = zeros(npr)
+    domain.dstress = zeros(npr, npr)
 
     return nothing
 end
 
-stress_error(domain::DomainUpdater) = norm(domain.stress) 
-
-function step_ready(domain::DomainUpdater, step::Integer, err::Real)
-    return step % domain.skip == 0 && err < domain.tol
-end
-
-function relax_cell!(domain::DomainUpdater)
+function step!(domain::DomainUpdater)
+    @assert !isnothing(domain.system)
     sys = domain.system
     cell = sys.cell
 
     # Calculate stress, Jacobian, and step direction
-    domain.stress .= scf_stress(sys)
+    domain.stress .= scfstress(sys)
     iter = 0
+    err = norm(domain.stress)
+    converged = err < domain.tol
 
-    while iter < 1
-        stress_response!(domain)
+    if converged
+        return nothing
+    elseif domain.verbose
+        @printf("Relaxing cell for %d steps from initial stress norm: |σ| = %.3e.\n", iter, err)
+    end
+
+    while iter < domain.nsteps && !converged
+        dstress!(domain)
         if cell.dim == 1
             domain.step .= -1.0 * domain.stress[1] / domain.dstress[1]
         else
@@ -75,52 +68,60 @@ function relax_cell!(domain::DomainUpdater)
         end
 
         # Rescale step-size if needed
-        step_max = 0.5 * max(norm(cell.params), num_cell_params(cell))
         step_size = norm(domain.step)
-        if step_size > step_max
-            domain.step .*= step_max / step_size
+        if step_size > domain.pmax
+            domain.step .*= domain.pmax / step_size
         end
 
         # Step cell parameters, update cell and stress
-        cell.params .+= domain.step
-        update_cell!(cell)
-        update_density!(sys)
-        update_residuals!(sys)
-        domain.stress .= scf_stress(sys)
+        @. cell.params += domain.lam * domain.step
+        @. cell.params = domain.rlxn*cell.params + (1 - domain.rlxn)*domain.oldparams
 
-        #println(domain.stress)
+        update!(cell)
+        density!(sys)
+        residuals!(sys)
+
+        domain.stress .= scfstress(sys)
 
         iter += 1
+        err = norm(domain.stress)
+        converged = err < domain.tol
+    end
+
+    if converged
+        @printf("Converged on step %d with stress norm: |σ| = %.3e.\n", iter, err)
+    else
+        @printf("Finished relaxation of %d steps with stress norm: |σ| = %.3e.\n", iter, err)
     end
 
     return nothing
 end
 
-function stress_response!(domain::DomainUpdater)
+function dstress!(domain::DomainUpdater)
+    @assert !isnothing(domain.system)
+    sys = domain.system
+    cell = sys.cell
+    domain.oldparams .= cell.params
+
     # Finite difference step size
     dx = 1e-8
     x = 1.0 / dx
 
-    # Offload fields, save old parameters of cell
-    sys = domain.system
-    cell = sys.cell
-    domain.old_params .= cell.params
-
     # For each cell param, calculate response to small perturbation
     for k = 1:nparams(cell)
-        cell.params .= domain.old_params
+        cell.params .= domain.oldparams
         cell.params[k] += dx
-        update_cell!(cell)
-        update_density!(sys)
 
-        new_stress = scf_stress(sys)
-        @. domain.dstress[:,k] = x * (new_stress - domain.stress)
+        update!(cell)
+        density!(sys)
+        pstress = scfstress(sys)
+
+        @. domain.dstress[:,k] = x * (pstress - domain.stress)
     end
 
     # Return to original state
-    cell.params .= domain.old_params
-    update_cell!(cell)
-    update_density!(sys)
+    cell.params .= domain.oldparams
+    density!(sys)
 
     return nothing
 end

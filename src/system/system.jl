@@ -339,24 +339,6 @@ function residuals!(sys::FieldSystem)
 end
 
 """
-	scfstress!(sys)
-
-Compute the free energy variation of the system with respect to each cell parameter.
-"""
-function scfstress!(sys::FieldSystem)
-	# Reset to zero
-	sys.stress .= 0.0
-
-	# Add stress from each contributing species
-	for (isp, species) in enumerate(sys.species)
-		phi = sys.phi_species[isp]
-		sys.stress .-= phi * scfstress(species)
-	end
-
-	return nothing
-end
-
-"""
 	uniform_fields!(sys)
 
 Set the value of all chemical potential fields equal to the summation of interaction potentials, 
@@ -394,39 +376,22 @@ end
 #==============================================================================#
 
 """
-    field_error(sys)
+	scfstress(sys)
 
-Compute the weighted error based on the current field residuals.
-
-Follows the definition in the Matsen (2009) Anderson mixing papers:
-``
-{\\rm err} = [∑_{α,i} {\\rm res}_{α,i}^2 / ∑_{α,i} ω_{α,i}^2]^{1/2}
-``
+Compute the free energy variation of the system with respect to each cell parameter.
 """
-function field_error(sys::FieldSystem)
-    # Residual weights
-    rsum = 0.0
-    for (mid, res) in sys.residuals
-        @simd for i in eachindex(res)
-            @inbounds rsum += res[i]^2
-        end
-    end
-    # Field weights
-    wsum = eps(Float64)
-    for (mid, omega) in sys.fields
-        @simd for i in eachindex(omega)
-            @inbounds wsum += omega[i]^2
-        end
-    end
-    return sqrt(rsum) / sqrt(wsum)
+function scfstress(sys::FieldSystem)
+	stress = zeros(nparams(sys.cell))
+	muphi!(sys)
+
+	# Add stress from each contributing species
+	for (isp, species) in enumerate(sys.species)
+		phi = sys.phi_species[isp]
+		stress .-= phi * scfstress(species)
+	end
+
+	return stress
 end
-
-"""
-    stress_error(sys)
-
-Compute the maximum stress parameter in the system.
-"""
-stress_error(sys::FieldSystem) = maximum(abs.(sys.cell.dparams))
 
 """
 	free_energy(sys)
@@ -489,4 +454,32 @@ function free_energy_bulk(sys::FieldSystem)
 	end
 
 	return fhelm
+end
+
+"""
+    field_error(sys)
+
+Compute the weighted error based on the current field residuals.
+
+Follows the definition in the Matsen (2009) Anderson mixing papers:
+``
+{\\rm err} = [∑_{α,i} {\\rm res}_{α,i}^2 / ∑_{α,i} ω_{α,i}^2]^{1/2}
+``
+"""
+function field_error(sys::FieldSystem)
+    # Residual weights
+    rsum = 0.0
+    for (mid, res) in sys.residuals
+        @simd for i in eachindex(res)
+            @inbounds rsum += res[i]^2
+        end
+    end
+    # Field weights
+    wsum = eps(Float64)
+    for (mid, omega) in sys.fields
+        @simd for i in eachindex(omega)
+            @inbounds wsum += omega[i]^2
+        end
+    end
+    return sqrt(rsum) / sqrt(wsum)
 end

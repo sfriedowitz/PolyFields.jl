@@ -14,9 +14,7 @@ mutable struct UnitCell
     dim     :: Int
     crystal :: Symbol
     volume  :: Float64
-
     params  :: Vector{Float64}
-    dparams :: Vector{Float64}
 
     R       :: SMat3D{Float64}  # R[:,i] = Bravais lattice basis vector a_i
     G       :: SMat3D{Float64}  # G[:,i] = Reciprocal lattice basis vector b_i
@@ -28,7 +26,6 @@ mutable struct UnitCell
     # Grids for k-vectors
     ksq     :: FieldGrid{Float64}
     dksq    :: Vector{FieldGrid{Float64}}
-    system  :: Option{AbstractSystem}
 
     function UnitCell(dim::Integer, crystal::Symbol, params::AbstractVector{<:Real})
         cell = new()
@@ -37,7 +34,6 @@ mutable struct UnitCell
         cell.params = params
 
         npr = nparams(cell)
-        cell.dparams = zeros(npr)
         cell.dR = zeros(3, 3, npr)
         cell.dG = zeros(3, 3, npr)
         cell.dRR = zeros(3, 3, npr)
@@ -46,7 +42,6 @@ mutable struct UnitCell
         # Add the k-grids
         cell.ksq = FieldGrid{Float64}(undef, 0, 0, 0)
         cell.dksq = []
-        cell.system = nothing
 
         # Update the basis information to make current before return
         update!(cell)
@@ -73,7 +68,6 @@ function setup!(cell::UnitCell, sys::AbstractSystem)
     if dim != cell.dim
         error("Number of non-singleton dimensions in System and Cell do not match!")
     end
-    cell.system = sys
 
     # Setup the cell
     cell.ksq = zeros(Float64, ksize(sys.dims))

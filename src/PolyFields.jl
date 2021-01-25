@@ -74,7 +74,7 @@ include("updaters/base.jl")
 include("updaters/euler.jl")
 include("updaters/anderson.jl")
 include("updaters/momentum.jl")
-# include("updaters/domain.jl")
+include("updaters/domain.jl")
 
 include("fileio.jl")
 include("simulate.jl")
