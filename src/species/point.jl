@@ -17,7 +17,7 @@ mutable struct Point <: AbstractSpecies
 	system   :: Option{FieldSystem}
 
 	function Point(mon::Monomer)
-		return new([mon.id], mon.size, 0.0, Dict())
+		return new([mon.id], mon.vol, 0.0, Dict())
 	end
 end
 
@@ -27,7 +27,7 @@ end
 
 Base.show(io::IO, species::Point) = @printf(io, "Point(mid = %d)", species.mids[1])
 
-monomerfraction(species::Point, mid::Integer) = hasmonomer(species, mid) ? 1.0 : 0.0
+monomer_fraction(species::Point, mid::Integer) = hasmonomer(species, mid) ? 1.0 : 0.0
 
 function setup!(species::Point, sys::FieldSystem)
 	species.system = sys
@@ -43,12 +43,12 @@ function density!(species::Point)
 	# Partition function via Boltzmann weight
 	Q = 0.0
 	@simd for i in eachindex(omega)
-		@inbounds Q += exp(-mon.size * omega[i])
+		@inbounds Q += exp(-mon.vol * omega[i])
 	end
 	species.Q = Q / ngrid(sys) # Normalize by number of grid points
 
 	# Update species density field
-	@. species.density[mon.id] = exp(-mon.size * omega) / point.Q
+	@. species.density[mon.id] = exp(-mon.vol * omega) / point.Q
 
 	return nothing
 end

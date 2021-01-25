@@ -3,8 +3,8 @@
 
 An interaction representing a Flory-Huggins ``\\chi``-interaction between different monomer types.
 
-Calculates an interaction energy of the form:
-``H = (1/2) ∑_i ∑_j χ_{ij} ∫dr ϕ_i(r) ϕ_j(r)``
+The interaction energy has the form:
+``H_{int} = (1/2) ∑_i ∑_j χ_{ij} ∫dr ϕ_i(r) ϕ_j(r)``
 """
 mutable struct FloryInteraction <: AbstractInteraction
     mids   :: Set{Int}
@@ -22,12 +22,11 @@ function setup!(itx::FloryInteraction, sys::FieldSystem)
     return nothing
 end
 
-function set_interaction(itx::FloryInteraction, alpha::Integer, beta::Integer, chi::Real)
+function set_interaction!(itx::FloryInteraction, alpha::Integer, beta::Integer, chi::Real)
     @assert alpha != beta
     pair = ordered_pair(alpha, beta)
-
-    if haskey(itx.chis, mids)
-        @warn "Replacing interaction for monomer pair with ids = $(mids)."
+    if haskey(itx.chis, pair)
+        @warn "Replacing interaction for monomer pair with IDs = $(pair)."
     end
 
     push!(itx.mids, alpha)
@@ -40,17 +39,13 @@ end
 function energy(itx::FloryInteraction)
     @assert !isnothing(itx.system)
     sys = itx.system
-    monomers = sys.monomers
 
     energy = 0.0
-    for alpha in itx.mids
-        for beta in itx.mids
-            pair = ordered_pair(alpha, beta)
-            if !haskey(itx.chis, pair); continue; end
-            chi = itx.chis[pair]
-
-            va = monomers[alpha].size
-            vb = monomers[beta].size
+    for (pair, chi) in itx.chis
+        alpha, beta = pair
+        if hasmonomer(sys, alpha) && hasmonomer(sys, beta)
+            va = sys.monomers[alpha].vol
+            vb = sys.monomers[beta].vol
             rho_alpha = sys.density[alpha]
             rho_beta = sys.density[beta]
 
@@ -60,7 +55,7 @@ function energy(itx::FloryInteraction)
         end
     end
 
-    return energy/ngrid(sys)
+    return energy / ngrid(sys)
 end 
 
 function energy_bulk(itx::FloryInteraction)
@@ -69,14 +64,11 @@ function energy_bulk(itx::FloryInteraction)
     monomers = sys.monomers
 
     energy = 0.0
-    for alpha in itx.mids
-        for beta in itx.mids
-            pair = ordered_pair(alpha, beta)
-            if !haskey(itx.chis, pair); continue; end
-            chi = itx.chis[pair]
-
-            va = monomers[alpha].size
-            vb = monomers[beta].size
+    for (pair, chi) in itx.chis
+        alpha, beta = pair
+        if hasmonomer(sys, alpha) && hasmonomer(sys, beta)
+            va = monomers[alpha].vol
+            vb = monomers[beta].vol
             rho_alpha = sys.density_bulk[alpha]
             rho_beta = sys.density_bulk[beta]
 
@@ -90,15 +82,14 @@ end
 function potential!(itx::FloryInteraction, alpha::Integer, pot::FieldGrid)
     @assert !isnothing(itx.system)
     sys = itx.system
-    monomers = sys.monomers
 
     for beta in itx.mids
         pair = ordered_pair(alpha, beta)
         if !haskey(itx.chis, pair); continue; end
         chi = itx.chis[pair]
 
-        vb = monomers[beta].size
         rho_beta = sys.density[beta]
+        vb = sys.monomers[beta].vol
 
         @simd for i in eachindex(pot)
             @inbounds pot[i] += chi * (rho_beta[i] / vb)

@@ -1,13 +1,6 @@
 """
 # PolyFields.jl
 Welcome to PolyFields.jl!
-
-PolyFields is a package...
-
-## REPL help
-
-## Documentation
-
 """
 module PolyFields
 
@@ -19,9 +12,9 @@ import Statistics: mean, std
 import LinearAlgebra: norm, dot, det, mul!, inv!, lu!
 import Dates
 
-using Parameters
 using Printf
-using JLD
+using JSON
+
 using Random
 using StaticArrays
 using Interpolations
@@ -43,11 +36,11 @@ export DomainUpdater, EulerUpdater, AndersonUpdater, MomentumUpdater
 
 # Methods
 export setup!, update!, set_interaction
-export add_monomer!, add_species!, add_interaction!, add_constraint!, isvalid
-export density!, muphi!, potentials!, potential!, update_eta!, stress!, set_omega_uniform, residuals!
+export add_monomer!, add_species!, add_interaction!, add_constraint!, validate
+export density!, muphi!, potentials!, potential!, scfstress, scfstress!, uniform_fields!, residuals!
 export free_energy, free_energy_bulk, energy, energy_bulk, set_interaction!
 export step!, field_error, stress_error
-export scft!, fieldinit!, savefields, loadfields!
+export fieldinit!, savefields, loadfields, scft!
 
 #==============================================================================#
 # Load files
@@ -76,7 +69,7 @@ include("interactions/flory.jl")
 include("interactions/edwards.jl")
 
 # # Field updaters
-# include("updaters/base.jl")
+include("updaters/base.jl")
 # include("updaters/constraint.jl")
 # include("updaters/domain.jl")
 # include("updaters/euler.jl")
@@ -85,8 +78,8 @@ include("interactions/edwards.jl")
 # # include("updaters/linesearch.jl")
 # # include("updaters/conjgrad.jl")
 
-# include("simulate.jl")
-# include("file_io.jl")
+include("fileio.jl")
+#include("simulate.jl")
 # include("plots.jl")
 
 end

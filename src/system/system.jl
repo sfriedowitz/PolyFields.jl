@@ -20,30 +20,28 @@ Contains all species, field, density, and monomer type information.
 """
 mutable struct FieldSystem <: AbstractSystem
 	# Grid and cell
-	dims         :: NTuple{3,Int}
-	ensemble     :: Ensemble 
-	cell         :: Cell
+	dims          :: NTuple{3,Int}
+	ensemble      :: Ensemble 
+	cell          :: Cell
 
 	# FFT and MDE helpers
-	fftplan      :: FFTHolder
-	solver       :: PseudoSpectralSolver
+	fftplan       :: FFTHolder
+	solver        :: PseudoSpectralSolver
 
 	# Field grids for each monomer type
-	monomers     :: Dict{Int,Monomer}
-	fields       :: Dict{Int,FieldGrid{Float64}}
-	potentials   :: Dict{Int,FieldGrid{Float64}}
-	residuals    :: Dict{Int,FieldGrid{Float64}}
-	density      :: Dict{Int,FieldGrid{Float64}}
-	density_bulk :: Dict{Int,Float64}
-	density_sum  :: FieldGrid{Float64}
-	charge_sum   :: FieldGrid{Float64}
+	monomers      :: Dict{Int,Monomer}
+	monomer_fracs :: Dict{Int,Float64}
+	fields        :: Dict{Int,FieldGrid{Float64}}
+	potentials    :: Dict{Int,FieldGrid{Float64}}
+	residuals     :: Dict{Int,FieldGrid{Float64}}
+	density       :: Dict{Int,FieldGrid{Float64}}
 
 	# Interactions and species
 	#constraints  :: Vector{AbstractConstraint}
-	interactions :: Vector{AbstractInteraction}
-	species      :: Vector{AbstractSpecies}
-	species_phi  :: Vector{Float64}
-	species_mu   :: Vector{Float64}
+	interactions  :: Vector{AbstractInteraction}
+	species       :: Vector{AbstractSpecies}
+	phi_species   :: Vector{Float64}
+	mu_species    :: Vector{Float64}
 end
 
 function FieldSystem(dims::NTuple{3,<:Integer}, cell::Cell;
@@ -55,7 +53,6 @@ function FieldSystem(dims::NTuple{3,<:Integer}, cell::Cell;
 
 	sys = FieldSystem(dims, ensemble, cell, fftplan, mdesolver,
 		Dict(), Dict(), Dict(), Dict(), Dict(), Dict(),
-		zeros(dims), zeros(dims),
 		[], [], [], []
 	)
 
@@ -85,26 +82,24 @@ volume(sys::FieldSystem) = sys.cell.volume
 
 ngrid(sys::FieldSystem) = prod(sys.dims)
 
-nmonomers(sys::FieldSystem) = length(sys.monomers)
-
 nspecies(sys::FieldSystem) = length(sys.species)
+
+nmonomers(sys::FieldSystem) = length(sys.monomers)
 
 hasmonomer(sys::FieldSystem, mid::Integer) = haskey(sys.monomers, mid)
 
-function bulkfractions!(sys::FieldSystem)
-	bulk = sys.density_bulk
-	for mid in keys(bulk); bulk[mid] = 0.0; end
-
-	for (isp, species) in enumerate(sys.species)
-		phi = sys.phi_species[isp]
-		for mid in species.mids
-			bulk[mid] += phi * monomer_fraction(species, mid)
-		end
-	end
-	return bulk
-end
-
 #==============================================================================#
+
+"""
+	add_cell!(sys, cell)
+
+Provide a new cell for the system.
+"""
+function add_cell!(sys::FieldSystem, cell::Cell)
+	sys.cell = cell
+	setup!(cell, sys)
+	return nothing
+end
 
 """
 	add_monomer!(sys, mon)
@@ -118,11 +113,12 @@ function add_monomer!(sys::FieldSystem, mon::Monomer)
 
 	# Add to system, add new fields
 	sys.monomers[mon.id] = mon
+	sys.monomer_fracs[mon.id] = 0.0
+
 	sys.fields[mon.id] = zeros(Float64, sys.dims)
 	sys.potentials[mon.id] = zeros(Float64, sys.dims)
 	sys.residuals[mon.id] = zeros(Float64, sys.dims)
 	sys.density[mon.id] = zeros(Float64, sys.dims)
-	sys.density_bulk[mon.id] = 0.0
 
 	return nothing
 end
@@ -187,7 +183,7 @@ function add_constraint!(sys::FieldSystem, cons::AbstractConstraint)
 end
 
 """
-	isvalid(sys)
+	validate(sys)
 
 Determine if the system is properly initialized before a calculation.
 Checks if the following requirements are met:
@@ -197,7 +193,7 @@ Checks if the following requirements are met:
 * Bulk fractions of all monomers sums to unity (canonical ensemble)
 * Bulk charge fractions of all monomers sums to zero
 """
-function isvalid(sys::FieldSystem)
+function validate(sys::FieldSystem)
 	# Check if fields are initialized
 	fields_init = false
 	for omega in values(sys.fields)
@@ -207,15 +203,13 @@ function isvalid(sys::FieldSystem)
 		end
 	end
 	if !fields_init
-		@error "Fields must be initialized before SCFT simulation."
-		return false
+		error("Fields must be initialized before SCFT simulation.")
 	end
 
 	# Check bulk volume fraction constraint
 	if sys.ensemble == Canonical
 		if !(sum(sys.phi_species) ≈ 1.0)
-			@error "Species volume fractions do not sum to unity."
-			return false
+			error("Species volume fractions do not sum to unity.")
 		end
 	end
 
@@ -223,11 +217,10 @@ function isvalid(sys::FieldSystem)
 	bulk_charge = 0.0
 	monomer_fractions!(sys)
 	for (mid, mon) in sys.monomers
-		bulk_charge += sys.density_bulk[mid] * mon.charge / mon.size		
+		bulk_charge += sys.density_bulk[mid] * mon.charge / mon.vol		
 	end
 	if !(bulk_charge ≈ 0.0)
-		@error "Bulk system not charge neutral."
-		return false
+		error("Bulk system not charge neutral.")
 	end
 
 	# Check if any monomer types do not have associated species
@@ -240,8 +233,7 @@ function isvalid(sys::FieldSystem)
 			end
 		end
 		if !has_species
-			@error "Monomer with id = $(mid) not found in any species."
-			return false
+			error("Monomer with id = $(mid) not found in any species.")
 		end
 	end
 
@@ -273,7 +265,7 @@ end
 """
 	density!(sys)
 
-Compute density fields for all monomer types from all species in the system.
+Compute density fields for all monomers in the system.
 """
 function density!(sys::FieldSystem)
 	# Zero density fields
@@ -291,17 +283,17 @@ function density!(sys::FieldSystem)
 
 	# Pool the updated density by type at the system level
 	for (isp, species) in enumerate(sys.species)
-		phi = sys.species_phi[isp]
+		phi = sys.phi_species[isp]
 		for mid in species.mids
 			@. sys.density[mid] += phi * species.density[mid]
 		end
 	end
 
-	# Sum all current density components for each grid point
-	sys.density_sum .= 0.0
-	for rho in values(sys.density)
-		@. sys.density_sum += rho
-	end
+	# # Sum all current density components for each grid point
+	# sys.density_sum .= 0.0
+	# for rho in values(sys.density)
+	# 	@. sys.density_sum += rho
+	# end
 
 	return nothing
 end
@@ -320,7 +312,7 @@ function potentials!(sys::FieldSystem)
 	# Add excess interactions
 	for (mid, pot) in sys.potentials
 		for itx in sys.interactions
-			add_potential!(itx, mid, pot)
+			potential!(itx, mid, pot)
 		end
 	end
 
@@ -346,12 +338,33 @@ function scfstress!(sys::FieldSystem)
 end
 
 """
-	meanfields!(sys)
+    residuals!(sys)
+
+Compute the gradient of the system Hamiltonian with respect to each density field.
+"""
+function residuals!(sys::FieldSystem)
+	density!(sys)
+	potentials!(sys)
+
+	# Update constraint fields here
+	# Add constraints to residuals
+
+    # Make residuals from fields and calculated potentials/eta field
+	for (mid, res) in sys.residuals
+		@. res = sys.potentials[mid] - sys.fields[mid]
+        if sys.ensemble == Canonical; res .-= mean(res); end
+	end
+    
+	return nothing
+end
+
+"""
+	uniform_fields!(sys)
 
 Set the value of all chemical potential fields equal to the summation of interaction potentials, 
 corresponding to the mean-field limit with vanishing constraint fields.
 """
-function meanfields!(sys::FieldSystem)
+function uniform_fields!(sys::FieldSystem)
 	potentials!(sys)
 	for (mid, omega) in sys.fields
 		@. omega = sys.potentials[mid]
@@ -363,28 +376,67 @@ function meanfields!(sys::FieldSystem)
 end
 
 """
-    residuals!(sys)
+	monomer_fractions!(sys)
 
-Compute the gradient of the system Hamiltonian with respect to each density field.
+Update the bulk fractions for each monomer present in the system.
 """
-function residuals!(sys::FieldSystem)
-	density!(sys)
-	potentials!(sys)
-	update_eta!(sys)
+function monomer_fractions!(sys::FieldSystem)
+	bulk = sys.monomer_fracs
+	for mid in keys(bulk); bulk[mid] = 0.0; end
 
-    # Make residuals from fields and calculated potentials/eta field
-	for (mid, res) in sys.residuals
-		@. res = sys.potentials[mid] + sys.eta - sys.fields[mid]
-		if sys.comp.incompressible
-			@. res += sys.density_sum - 1.0
+	for (isp, species) in enumerate(sys.species)
+		phi = sys.phi_species[isp]
+		for mid in species.mids
+			bulk[mid] += phi * monomer_fraction(species, mid)
 		end
-        if sys.ensemble == Canonical; res .-= mean(res); end
 	end
-    
-	return nothing
+	return bulk
 end
 
 #==============================================================================#
+
+"""
+    field_error(sys)
+
+Compute the error of the current residuals and the field configurations.
+
+Follows the definition in the Matsen (2009) Anderson mixing papers:
+``
+ϵ = [∑_{α,i} r_{α,i}^2 / ∑_{α,i} ω_{α,i}^2]^{1/2}
+``
+"""
+function field_error(sys::FieldSystem)
+    # Residual weights
+    rsum = 0.0
+    for (mid, res) in sys.residuals
+        @simd for i in eachindex(res)
+            @inbounds rsum += res[i]^2
+        end
+    end
+    # Field weights
+    wsum = eps(Float64)
+    for (mid, omega) in sys.fields
+        @simd for i in eachindex(omega)
+            @inbounds wsum += omega[i]^2
+        end
+    end
+    return sqrt(rsum) / sqrt(wsum)
+end
+
+"""
+    stress_error(sys)
+
+Compute the error related to stress in the system as the absolute value of the maximum stress component.
+"""
+function stress_error(sys::FieldSystem)
+	max_val = 0.0
+	for s in sys.stress
+		if abs(s) > max_val
+			max_val = abs(s)
+		end
+	end
+	return max_val
+end
 
 """
 	free_energy(sys)
@@ -396,7 +448,7 @@ function free_energy(sys::FieldSystem)
 	ftrans = 0.0
 	for (isp, species) in enumerate(sys.species)
 		phi = sys.phi_species[isp]
-		mu = sys.mu_species[isp]
+		mu = sys.phi_species[isp]
 		if phi > 1e-8
 			ftrans += phi * (mu - 1.0) / species.Nref
 		end

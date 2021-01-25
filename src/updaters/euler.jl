@@ -1,5 +1,5 @@
 """
-	EulerUpdater(; method = "PECE", lam = 0.05)
+	EulerUpdater(; method =  :PECE, lam = 0.05)
 
 A field updater implementing predictor-corrector Euler time stepping with static step size `lam`.
 Available options for `method` include:
@@ -8,14 +8,13 @@ Available options for `method` include:
 * PECE - predict-evaluate-correct-evaluate scheme, with 2 density evaluations per step
 """
 struct EulerUpdater <: AbstractFieldUpdater
-	method :: String
+	method :: Symbol
 	lam    :: Float64
 	temp   :: Dict{Int,FieldGrid{Float64}} # Used as pre-allocated storage for half-steps
 
-	function EulerUpdater(; method::AbstractString = "PECE", lam::Real = 0.05)
-		method = strip(uppercase(method))
-		if !(method in ("PEC", "PECE"))
-			error("Invalid `method` parameter for EulerUpdater. Options include: (PEC, PECE)")
+	function EulerUpdater(; method::Symbol = :PECE, lam::Real = 0.05)
+		if !(method in (:PEC, :PECE))
+			error("Invalid `method` parameter for EulerUpdater. Options include: (:PEC, :PECE)")
 		end
 		return new(method, lam, Dict())
 	end
@@ -28,7 +27,7 @@ end
 Base.show(io::IO, updater::EulerUpdater) = @printf(io, "EulerUpdater(method = %s, lam = %.3g)", updater.method, updater.lam)
 
 function setup!(updater::EulerUpdater, sys::FieldSystem)
-	copy_dict!(sys.fields, updater.temp)
+	copydict!(updater.temp, sys.fields)
 	return nothing
 end
 
@@ -47,17 +46,17 @@ function update_state!(sys::FieldSystem, updater::EulerUpdater)
 	end
 
 	# 2 Evaluate
-	make_residuals!(sys)
+	residuals!(sys)
 
 	# 3) Correct
 	for (mid, omega_temp) in updater.temp
 		@. omega_temp += 0.5 * updater.lam * sys.residuals[mid]
 	end
-	copy_dict!(updater.temp, sys.fields)
+	copydict!(sys.fields, updater.temp)
 
 	# 4) Evaluate (PECE mode)
-	if updater.method == "PECE"
-		make_residuals!(sys)
+	if updater.method == :PECE
+		residuals!(sys)
 	end
 
 	return nothing

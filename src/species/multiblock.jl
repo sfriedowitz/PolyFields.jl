@@ -48,7 +48,7 @@ function Multiblock(mon_block::AbstractVector{Monomer}, N_block::AbstractVector{
     
     # Determine contour locations for each block
     N = sum(N_block)
-    Nref_block = [mon_block[iblk].size * N_block[iblk] for iblk = 1:length(mon_block)]
+    Nref_block = [mon_block[iblk].vol * N_block[iblk] for iblk = 1:length(mon_block)]
     Nref, begin_block, ds_block = chain_grid(Nref_block, Ns) # Use the Nref block lengths to discretize solver
     f_block = [Nr/Nref for Nr in Nref_block]
 
@@ -60,21 +60,20 @@ function Multiblock(mon_block::AbstractVector{Monomer}, N_block::AbstractVector{
 
     return Multiblock(monomers, mids, mid_block, mid_map,
         Ns, N, N_block, Nref, Nref_block, f_block, b_block, ds_block, begin_block,
-        0.0, [], [], Dict(), Dict()
+        0.0, [], [], Dict(), Dict(), nothing
     )
 end
 
-function Homopolymer(mon::Monomer, N::Integer, b::Real, Ns::Integer = 100; name::String = "")
-    return Multiblock([mon], [N], [b], Ns; name = name)
+function Homopolymer(mon::Monomer, N::Integer, b::Real, Ns::Integer = 100)
+    return Multiblock([mon], [N], [b], Ns)
 end
 
-function Diblock(amon::Monomer, bmon::Monomer, N::Integer, f::Real, 
-    b1::Real, b2::Real, Ns::Integer = 100; name::String = "")
+function Diblock(amon::Monomer, bmon::Monomer, N::Integer, f::Real, b1::Real, b2::Real, Ns::Integer = 100)
     N_block = trunc.(Int, [f*N, (1-f)*N])
     if sum(N_block) != N
         error("Non-integer block lengths for N = $N, f = $f.")
     end
-    return Multiblock([amon, bmon], N_block, [b1, b2], Ns; name = name)
+    return Multiblock([amon, bmon], N_block, [b1, b2], Ns)
 end
 
 #==============================================================================#
@@ -89,9 +88,9 @@ function Base.show(io::IO, species::Multiblock)
     end
 end
 
-nblocks(species::Multiblock) = length(species.N_blocks)
+nblocks(species::Multiblock) = length(species.N_block)
 
-function monomerfraction(species::Multiblock, mid::Integer)
+function monomer_fraction(species::Multiblock, mid::Integer)
 	# Check if mid present
 	if !hasmonomer(species, mid); return 0.0; end
 	# It has the mid, so calculate fraction
@@ -127,7 +126,6 @@ function density!(species::Multiblock)
 	@assert !isnothing(species.system)
 	sys = species.system
     plan = sys.fftplan
-    monomers = sys.monomers
 
 	# Necessary class fields
 	q, qc = species.q, species.qc
@@ -141,10 +139,10 @@ function density!(species::Multiblock)
 		ds = species.ds_block[iblk]
 
 		mid = species.mid_block[iblk]
-		mon = monomers[mid]
+		mon = sys.monomers[mid]
 		omega = sys.fields[mid]
 
-		update_operators!(solver, omega, ksq, mon.size, b, ds)
+		update!(solver, omega, ksq, mon.vol, b, ds)
 		for s = species.begin_block[iblk] : species.begin_block[iblk+1]-1
 			propagate!(solver, plan, q[s], q[s+1])
 		end
@@ -163,10 +161,10 @@ function density!(species::Multiblock)
     		ds = species.ds_block[iblk]
 
 			mid = species.mid_block[iblk]
-			mon = monomers[mid]
+			mon = sys.monomers[mid]
 			omega = sys.fields[mid]
 
-    		update_operators!(solver, omega, ksq, mon.size, b, ds)
+    		update!(solver, omega, ksq, mon.vol, b, ds)
     		for s = species.begin_block[iblk+1] : -1 : species.begin_block[iblk]+1
     			propagate!(solver, plan, qc[s], qc[s-1])
     		end

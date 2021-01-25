@@ -29,6 +29,8 @@ mutable struct AndersonUpdater <: AbstractFieldUpdater
     WW         :: FieldGrid{Float64}
     DD         :: FieldGrid{Float64}
 
+    system     :: Option{FieldSystem}
+
     function AndersonUpdater(; nhist::Integer = 50, iter_euler::Integer = 1, lam_euler::Real = 0.01)
         # Must take at least 1 initial step before mixing
         if iter_euler <= 1; iter_euler = 1; end
@@ -38,7 +40,7 @@ mutable struct AndersonUpdater <: AbstractFieldUpdater
 
         return new(nhist, 0, 0, iter_euler, 0.0, lam_euler, false, res_hist, field_hist, 
             zeros(nhist, nhist), zeros(nhist), zeros(nhist),
-            zeros(0, 0, 0), zeros(0, 0, 0)
+            [], [], nothing
         )
     end
 end
@@ -50,6 +52,7 @@ end
 Base.show(io::IO, updater::AndersonUpdater) = @printf(io, "AndersonUpdater(nhist = %d, iter = %d)", updater.nhist, updater.iter)
 
 function setup!(updater::AndersonUpdater, sys::FieldSystem)
+    updater.system = sys
     # If already bound to same system and setup, keep histories
     if updater.setup
         @warn "Using previous iterations in AndersonUpdater history."
@@ -91,7 +94,7 @@ end
 
 #==============================================================================#
 
-function update_state!(sys::FieldSystem, updater::AndersonUpdater)
+function step!(sys::FieldSystem)
     # Calculate lam and iter_hist
     updater.iter += 1
     if updater.iter < updater.nhist+1

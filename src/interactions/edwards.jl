@@ -22,10 +22,11 @@ function setup!(itx::EdwardsInteraction, sys::FieldSystem)
     return nothing
 end
 
-function set_interaction(itx::EdwardsInteraction, mid::Integer, u::Real)
+function set_interaction!(itx::EdwardsInteraction, mid::Integer, u::Real)
     if mid in itx.mids
         @warn "Replacing interaction for monomer with id = $(mid)."
     end
+    push!(itx.mids, mid)
     itx.uvals[mid] = u
     return nothing
 end
@@ -33,16 +34,17 @@ end
 function energy(itx::EdwardsInteraction)
     @assert !isnothing(itx.system)
     sys = itx.system
-    monomers = sys.monomers
 
     energy = 0.0
-    for alpha in itx.mids
-        u = itx.uvals[alpha]
-        v = monomers[alpha].size
+    for mid in itx.mids
+        if hasmonomer(sys, mid)
+            u = itx.uvals[mid]
+            v = sys.monomers[mid].vol
+            rho = sys.density[mid]
 
-        rho = sys.density[alpha]
-        @simd for i in eachindex(rho)
-            @inbounds energy += (u/2)*(rho[i]/v)^2
+            @simd for i in eachindex(rho)
+                @inbounds energy += (u/2)*(rho[i]/v)^2
+            end
         end
     end
 
@@ -52,15 +54,16 @@ end
 function energy_bulk(itx::EdwardsInteraction)
     @assert !isnothing(itx.system)
     sys = itx.system
-    monomers = sys.monomers
 
     energy = 0.0
     for mid in itx.mids
-        u = itx.uvals[mid]
-        v = monomers[mid].size
+        if hasmonomer(sys, mid)
+            u = itx.uvals[mid]
+            v = sys.monomers[mid].vol
+            rho = sys.density_bulk[mid]
 
-        rho = sys.density_bulk[mid]
-        energy += (u/2)*(rho/v)^2
+            energy += (u/2)*(rho/v)^2
+        end
     end
 
     return energy
@@ -69,14 +72,15 @@ end
 function potential!(itx::EdwardsInteraction, mid::Integer, pot::FieldGrid)
     @assert !isnothing(itx.system)
     sys = itx.system
-    monomers = sys.monomers
 
-    rho = sys.density[mid]
-    u = itx.uvals[mid]
-    v = monomers[mid].size
+    if mid in itx.mids
+        u = itx.uvals[mid]
+        v = sys.monomers[mid].vol
+        rho = sys.density[mid]
 
-    @simd for i in eachindex(pot)
-        @inbounds pot[i] += u*(rho[i]/v)
+        @simd for i in eachindex(pot)
+            @inbounds pot[i] += u*(rho[i]/v)
+        end
     end
 
     return nothing
