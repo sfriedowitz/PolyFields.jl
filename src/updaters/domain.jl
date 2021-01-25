@@ -107,7 +107,7 @@ function stress_response!(domain::DomainUpdater)
     domain.old_params .= cell.params
 
     # For each cell param, calculate response to small perturbation
-    for k = 1:num_cell_params(cell)
+    for k = 1:nparams(cell)
         cell.params .= domain.old_params
         cell.params[k] += dx
         update_cell!(cell)

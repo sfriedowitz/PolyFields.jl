@@ -1,4 +1,6 @@
 """
+    mutable struct AndersonUpdater <: AbstractFieldUpdater
+
     AndersonUpdater(; nhist = 50, iter_euler = 1, lam_euler = 0.01)
 
 A field updating scheme implementing Anderson mixing, which obtains a new field configuration
@@ -39,8 +41,8 @@ mutable struct AndersonUpdater <: AbstractFieldUpdater
         field_hist = [Dict() for i = 1:nhist+1]
 
         return new(nhist, 0, 0, iter_euler, 0.0, lam_euler, false, res_hist, field_hist, 
-            zeros(nhist, nhist), zeros(nhist), zeros(nhist),
-            [], [], nothing
+            zeros(nhist, nhist), zeros(nhist), zeros(nhist), zeros(0,0,0), zeros(0,0,0),
+             nothing
         )
     end
 end
@@ -53,6 +55,7 @@ Base.show(io::IO, updater::AndersonUpdater) = @printf(io, "AndersonUpdater(nhist
 
 function setup!(updater::AndersonUpdater, sys::FieldSystem)
     updater.system = sys
+
     # If already bound to same system and setup, keep histories
     if updater.setup
         @warn "Using previous iterations in AndersonUpdater history."
@@ -94,7 +97,10 @@ end
 
 #==============================================================================#
 
-function step!(sys::FieldSystem)
+function step!(updater::AndersonUpdater)
+    @assert !isnothing(updater.system)
+    sys = updater.system
+
     # Calculate lam and iter_hist
     updater.iter += 1
     if updater.iter < updater.nhist+1
@@ -110,7 +116,7 @@ function step!(sys::FieldSystem)
     iter_hist = updater.iter_hist
 
     # Update density and residuals
-    make_residuals!(sys)
+    residuals!(sys)
 
     # Update the residual history
     for (mid, res) in sys.residuals

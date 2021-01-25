@@ -22,12 +22,14 @@ end
 """
     copydict!(dest, src)
 
-Copy data from arrays in `src` to arrays with matching keys in `dest`.
+Copy data from arrays in `src` to `dest`, adding keys to `dest` if necessary.
 """
 function copydict!(dest::Dict{TK,TV}, src::Dict{TK,TV}) where {TK,TV<:AbstractArray}
     for (key, val) in src
-        if haskey(dest, key)
-            dst[key] .= val
+        if haskey(dest, key) && size(val) == size(dest[key])
+            dest[key] .= val
+        else
+            dest[key] = deepcopy(val)
         end
     end
     return nothing
@@ -42,7 +44,7 @@ function dotdicts(a::Dict{TK,TV}, b::Dict{TK,TV}) where {TK,TV<:AbstractArray}
     # Performs a dot product between all arrays in a and b dictionaries
     d = 0.0
     for (key, val1) in a
-        if haskey(b, key)
+        if haskey(b, key) && size(val1) == size(b[key])
             val2 = b[key]
             d += dot(val1, val2)
         end

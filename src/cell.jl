@@ -33,6 +33,7 @@ mutable struct Cell
     # Grids for k-vectors
     ksq     :: FieldGrid{Float64}
     dksq    :: Vector{FieldGrid{Float64}}
+    system  :: Option{AbstractSystem}
 
     function Cell(dim::Integer, params::AbstractVector{<:Real})
         cell = new()
@@ -50,6 +51,7 @@ mutable struct Cell
         # Add the k-grids
         cell.ksq = FieldGrid{Float64}(undef, 0, 0, 0)
         cell.dksq = []
+        cell.system = nothing
 
         # Update the basis information to make current before return
         update!(cell)
@@ -106,6 +108,7 @@ function setup!(cell::Cell, sys::AbstractSystem)
     if dim != cell.dim
         error("Number of non-singleton dimensions in System and Cell do not match!")
     end
+    cell.system = sys
 
     # Setup the cell
     cell.ksq = zeros(Float64, ksize(sys.dims))

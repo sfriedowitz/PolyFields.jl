@@ -24,7 +24,7 @@ mutable struct FieldSystem <: AbstractSystem
 	ensemble      :: Ensemble 
 	cell          :: Cell
 
-	# FFT and MDE helpers
+	# MDE and FFT
 	fftplan       :: FFTHolder
 	solver        :: PseudoSpectralSolver
 
@@ -42,22 +42,26 @@ mutable struct FieldSystem <: AbstractSystem
 	species       :: Vector{AbstractSpecies}
 	phi_species   :: Vector{Float64}
 	mu_species    :: Vector{Float64}
+
+	# Constraints
+	compress      :: Compressibility
 end
 
 function FieldSystem(dims::NTuple{3,<:Integer}, cell::Cell;
 	monomers = Monomer[], ensemble::Ensemble = Canonical, 
-	mde::Symbol = :RK2, nthreads::Integer = -1)
+	compress = Compressibility(0.0), mde::Symbol = :RK2, nthreads::Integer = -1)
 	# Create FFT and MDE solver
 	fftplan = FFTHolder(dims; nthreads = nthreads)
-	mdesolver = PseudoSpectralSolver(dims; method = mde)
+	solver = PseudoSpectralSolver(dims; method = mde)
 
-	sys = FieldSystem(dims, ensemble, cell, fftplan, mdesolver,
-		Dict(), Dict(), Dict(), Dict(), Dict(), Dict(),
-		[], [], [], []
+	sys = FieldSystem(dims, ensemble, cell, fftplan, solver,
+		Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), [], [], [], [], 
+		compress
 	)
 
-	# Allocate grids on Cell
+	# Allocate to system size
 	setup!(cell, sys)
+	setup!(compress, sys)
 
 	# Add initial monomers
 	for mon in monomers
@@ -173,17 +177,6 @@ function add_interaction!(sys::FieldSystem, itx::AbstractInteraction)
 end
 
 """
-	add_constraint!(sys, cons)
-
-Add an `AbstractConstraint` to the `FieldSystem`.
-"""
-function add_constraint!(sys::FieldSystem, cons::AbstractConstraint)
-	setup!(cons, sys)
-	push!(sys.constraints, cons)
-	return nothing
-end
-
-"""
 	validate(sys)
 
 Determine if the system is properly initialized before a calculation.
@@ -242,7 +235,7 @@ function validate(sys::FieldSystem)
 end
 
 #==============================================================================#
-# Methods for system density, potentials, and compressibility
+# Methods for system density, potentials, and constraints
 #==============================================================================#
 
 """
@@ -326,15 +319,17 @@ end
 Compute the gradient of the system Hamiltonian with respect to each density field.
 """
 function residuals!(sys::FieldSystem)
+	# Run updates on all field grids
 	density!(sys)
 	potentials!(sys)
 
-	# Update constraint fields here
-	# Add constraints to residuals
+	# Update compressibility field
+	update!(sys.compress)
+	eta = sys.compress.field
 
     # Make residuals from fields and calculated potentials/eta field
 	for (mid, res) in sys.residuals
-		@. res = sys.potentials[mid] - sys.fields[mid]
+		@. res = sys.potentials[mid] + eta - sys.fields[mid]
         if sys.ensemble == Canonical; res .-= mean(res); end
 	end
     
