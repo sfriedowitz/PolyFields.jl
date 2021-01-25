@@ -63,18 +63,6 @@ Base.show(io::IO, cell::UnitCell) = @printf(io, "Cell(dim = %d, V = %.2f)", cell
 
 nparams(cell::UnitCell) = length(cell.params)
 
-# function paramstring(cell::UnitCell)
-#     p = cell.params
-#     if cell.dim == 1
-#         return @sprintf "%.3f" p[1]
-#     elseif cell.dim == 2
-#         return @sprintf "%.3f, %.3f, %.3f" p[1] p[2] p[3]
-#     elseif cell.dim == 3
-#         return @sprintf "%.3f, %.3f, %.3f, %.3f, %.3f, %.3f" p[1] p[2] p[3] p[4] p[5] p[6]
-#     end
-#     return ""
-# end
-
 """
     setup!(cell, sys)
 
@@ -120,14 +108,14 @@ function update!(cell::UnitCell)
     return nothing
 end
 
+#==============================================================================#
+
 function basis!(cell::UnitCell)
     cell.R = make_basis(cell.dim, cell.crystal, cell.params)
     cell.G = 2*pi*transpose(inv(cell.R))
     cell.volume = det(cell.R)
     return nothing
 end
-
-#==============================================================================#
 
 function dbasis!(cell::UnitCell)
     # Calculates the variation of the real and reciprocal basis matrices
@@ -199,7 +187,7 @@ function dbasis!(cell::UnitCell)
             cell.dR[1,3,3] = cos(beta)
             cell.dR[2,3,3] = cy / c
             cell.dR[3,3,3] = cz / c
-            # The dirty ones w/ angle derivatives, 3rd column gets messy af
+            # The dirty ones w/ angle derivatives, 3rd column gets messy
             cell.dR[2,3,4] = -c * sin(alpha) / sin(gamma)
             cell.dR[3,3,4] = c^2 * (cos(alpha) - cos(beta)*cos(gamma)) * sin(alpha) / sin(gamma)^2 / cz
             cell.dR[1,3,5] = -c * sin(beta)

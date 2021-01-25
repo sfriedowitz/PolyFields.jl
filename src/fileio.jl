@@ -56,7 +56,7 @@ end
 function fieldinit!(sys::FieldSystem, fpath::AbstractString; load_cell::Bool = true, interpolate::Bool = true)
     data = loadfields(fpath)
     if load_cell
-        cell = Cell(data[:dim], data[:cell])
+        cell = UnitCell(d[:dim], d[:crystal], d[:cell_params])
         add_cell!(sys, cell)
     end
     fieldinit!(sys, data[:fields]; field_type = data[:field_type], interpolate = interpolate)
@@ -76,18 +76,19 @@ Argument `type` specifies whether density or omega fields are saved.
 """
 function savefields(sys::FieldSystem, fpath::AbstractString; field_type::Symbol = :omega)  
     d = Dict()
-    d["dim"] = ndims(sys.dims)
-    d["grid"] = sys.dims
-    d["mids"] = sort(collect(keys(sys.monomers)))
+    d[:dim] = ndims(sys.dims)
+    d[:grid] = sys.dims
+    d[:mids] = sort(collect(keys(sys.monomers)))
 
-    d["date"] = string(Dates.now())
-    d["cell"] = sys.cell.params
-    d["field_type"] = field_type
-    d["fields"] = Dict()
+    d[:date] = Dates.format(Dates.now(), "Y-m-d H:M:S")
+    d[:crystal] = sys.cell.crystal
+    d[:cell_params] = sys.cell.params
+    d[:field_type] = field_type
 
     fields = field_type == :rho ? sys.density : sys.fields
+    d[:fields] = typeof(fields)()
     for (mid, arr) in fields
-        d["fields"][mid] = arr
+        d[:fields][mid] = arr
     end
 
     json_string = JSON.json(d, 4)#JSON.json(d, 4)
@@ -111,7 +112,8 @@ function loadfields(fpath::AbstractString)
     d[:grid] = Tuple(convert(Vector{Int}, raw["grid"]))
 
     d[:mids] = Tuple(convert(Vector{Int}, raw["mids"]))
-    d[:cell] = convert(Vector{Float64}, raw["cell"])
+    d[:crystal] = Symbol(raw["crystal"])
+    d[:cell_params] = convert(Vector{Float64}, raw["cell_params"])
     d[:field_type] = Symbol(raw["field_type"])
 
     mids = d[:mids]

@@ -49,35 +49,35 @@ export fieldinit!, savefields, loadfields, scft!
 # General
 include("types.jl")
 include("utils.jl")
-include("fft.jl")
-include("mde.jl")
-include("monomer.jl")
 
 # Cell and system
+include("system/fft.jl")
+include("system/mde.jl")
+include("system/monomer.jl")
 include("system/basis.jl")
 include("system/cell.jl")
-# include("system/compress.jl")
-# include("system/system.jl")
+include("system/compress.jl")
+include("system/system.jl")
 
-# # Species architectures
-# include("species/base.jl")
-# include("species/point.jl")
-# include("species/multiblock.jl")
+# Species architectures
+include("species/base.jl")
+include("species/point.jl")
+include("species/multiblock.jl")
 
-# # # Interaction classes
-# include("interactions/base.jl")
-# include("interactions/flory.jl")
-# include("interactions/edwards.jl")
+# # Interaction classes
+include("interactions/base.jl")
+include("interactions/flory.jl")
+include("interactions/edwards.jl")
 
-# # # Field updaters
-# include("updaters/base.jl")
-# include("updaters/euler.jl")
-# include("updaters/anderson.jl")
-# include("updaters/momentum.jl")
-# # include("updaters/domain.jl")
+# # Field updaters
+include("updaters/base.jl")
+include("updaters/euler.jl")
+include("updaters/anderson.jl")
+include("updaters/momentum.jl")
+# include("updaters/domain.jl")
 
-# include("fileio.jl")
-# include("simulate.jl")
-# # include("plots.jl")
+include("fileio.jl")
+include("simulate.jl")
+# # include("viz.jl")
 
 end
