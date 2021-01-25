@@ -211,7 +211,7 @@ function validate(sys::FieldSystem)
 	bulk_charge = 0.0
 	monomer_fractions!(sys)
 	for (mid, mon) in sys.monomers
-		bulk_charge += sys.density_bulk[mid] * mon.charge / mon.vol		
+		bulk_charge += sys.monomer_fracs[mid] * mon.charge / mon.vol		
 	end
 	if !(bulk_charge ≈ 0.0)
 		error("Bulk system not charge neutral.")
@@ -221,7 +221,7 @@ function validate(sys::FieldSystem)
 	for mid in keys(sys.monomers)
 		has_species = false
 		for species in sys.species
-			if has_monomer(species, mid)
+			if hasmonomer(species, mid)
 				has_species = true
 				break
 			end
@@ -283,12 +283,6 @@ function density!(sys::FieldSystem)
 		end
 	end
 
-	# # Sum all current density components for each grid point
-	# sys.density_sum .= 0.0
-	# for rho in values(sys.density)
-	# 	@. sys.density_sum += rho
-	# end
-
 	return nothing
 end
 
@@ -330,7 +324,14 @@ function residuals!(sys::FieldSystem)
     # Make residuals from fields and calculated potentials/eta field
 	for (mid, res) in sys.residuals
 		@. res = sys.potentials[mid] + eta - sys.fields[mid]
-        if sys.ensemble == Canonical; res .-= mean(res); end
+	end
+
+	# Mean-subtract the system fields and residuals
+	if sys.ensemble == Canonical
+		for mid in keys(sys.fields)
+			sys.fields[mid] .-= mean(sys.fields[mid])
+			sys.residuals[mid] .-= mean(sys.residuals[mid])
+		end
 	end
     
 	return nothing

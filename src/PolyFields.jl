@@ -14,6 +14,7 @@ import Dates
 
 using Printf
 using JSON
+using Parameters
 
 using Random
 using StaticArrays
@@ -73,7 +74,7 @@ include("updaters/momentum.jl")
 # include("updaters/domain.jl")
 
 include("fileio.jl")
-#include("simulate.jl")
+include("simulate.jl")
 # include("plots.jl")
 
 end
