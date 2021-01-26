@@ -35,7 +35,7 @@ function FFTHolder(dims::NTuple{3,<:Integer}; nthreads::Integer = -1)
 	return plan
 end
 
-FFTHolder(Nx::Integer, Ny::Integer, Nz::Integer; kwargs...) = FFTHolder((Nx, Ny, Nz); kwargs...)
+FFTHolder(nx::Integer, ny::Integer, nz::Integer; kwargs...) = FFTHolder((nx, ny, nz); kwargs...)
 
 #==============================================================================#
 
