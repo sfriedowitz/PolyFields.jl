@@ -14,8 +14,7 @@ Input options for an SCFT calculation.
 	nsout     :: Int = 0
 	nsave	  :: Int = 0
 	ftol      :: Float64 = 1e-5
-	stol      :: Float64 = 1e-5
-	domain    :: Bool = false
+	stol      :: Float64 = 1e-4
 	savepath  :: String = ""
 end
 
@@ -60,7 +59,7 @@ Returns a summary in the form of an `SCFTResults` object.
 """
 function scft!(sys::FieldSystem, updater::AbstractFieldUpdater; 
 	domain::Option{DomainUpdater} = nothing, opts::SCFTOptions = SCFTOptions())
-	sim_time = @elapsed begin
+	simtime = @elapsed begin
 		# Validate and initial setup
 		validate(sys)
 		residuals!(sys)
@@ -95,7 +94,8 @@ function scft!(sys::FieldSystem, updater::AbstractFieldUpdater;
 			# Update the cell if necessary
 			if vcell && step % domain.nskip == 0
 				scfstress!(domain)
-				if stress_error(domain) > opts.stol
+				serr = stress_error(domain)
+				if serr > opts.stol
 					step!(domain; nsteps = domain.nper, tol = opts.stol)
 					serr = stress_error(domain)
 					@printf("Updating cell dimensions: serr = %.5e\n", serr)
@@ -144,5 +144,5 @@ function scft!(sys::FieldSystem, updater::AbstractFieldUpdater;
 		end
 	end
 	
-	return SCFTResults(sim_time, step, converged, ferr, serr, fhelm)
+	return SCFTResults(simtime, step, converged, ferr, serr, fhelm)
 end

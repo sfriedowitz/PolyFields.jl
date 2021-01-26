@@ -56,7 +56,7 @@ end
 function fieldinit!(sys::FieldSystem, fpath::AbstractString; load_cell::Bool = true, interpolate::Bool = true)
     data = loadfields(fpath)
     if load_cell
-        cell = UnitCell(d[:dim], d[:crystal], d[:cell_params])
+        cell = UnitCell(data[:dim], data[:crystal], data[:cell_params])
         add_cell!(sys, cell)
     end
     fieldinit!(sys, data[:fields]; field_type = data[:field_type], interpolate = interpolate)

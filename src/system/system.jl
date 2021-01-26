@@ -229,7 +229,7 @@ function validate(sys::FieldSystem)
 			end
 		end
 		if !has_species
-			error("Monomer with id = $(mid) not found in any species.")
+			error("Monomer with ID = $(mid) not found in any species.")
 		end
 	end
 
