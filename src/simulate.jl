@@ -79,6 +79,11 @@ function scft!(sys::FieldSystem, updater::AbstractFieldUpdater;
 		end
 
 		converged = isconverged(ferr, opts.ftol, serr, opts.stol, vcell)
+		if !converged
+			# Print header of output
+			println("--------------------------------------------------------------")
+		end
+
 		while step < opts.nsteps && !converged
 			if opts.nsout > 0 && step % opts.nsout == 0
 				@printf("Step (%-5d / %5d): ferr = %8e, fhelm = %.5e\n", step, opts.nsteps, ferr, fhelm)
