@@ -82,6 +82,7 @@ SCFTResults
 ## TODO
 
 * Add plotting tools for system and field output
+* Store NPW dimensions in UnitCell? Allows system to be created from only cell, no dimension clashes
 * AndersonUpdater may be bugged for overrunning -- figure it out
 * Add species without adding monomers beforehand?
 * GCE performance and stability (may not work currently)

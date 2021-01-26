@@ -5,10 +5,11 @@
 
 A unit cell representing a real-space and inverse-space basis in 1, 2 or 3 dimensions.
 
-A specified crystal system controls the geometry of the cell. These include
+A specified crystal system controls the geometry of the cell. These include:
+
 *1D: (:lamellar)
 *2D: (:square, :rectangular, :hexagonal, :oblique)
-*3D: 
+*3D: (:cubic, :tetragonal, :orthorhombic, :hexagonal, :monoclinic, :triclinic)
 """
 mutable struct UnitCell
     dim     :: Int
