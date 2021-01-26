@@ -82,9 +82,9 @@ SCFTResults
 ## TODO
 
 * Add plotting tools for system and field output
-* Store NPW dimensions in UnitCell? Allows system to be created from only cell, no dimension clashes
-* AndersonUpdater may be bugged for overrunning -- figure it out
-* Add species without adding monomers beforehand?
-* GCE performance and stability (may not work currently)
+* Ordered initialization: Cell --> System --> Updaters, no setup calls internally
+* Add species to system without adding monomers beforehand?
+* Divergence issues for AndersonUpdater w/ sub-optimal seeding
+* GCE performance and stability, chemical potential constraints
 * Add FDDD2 crystal systems, more generic format for basis construction
-* Codify field containers -- FieldGrid and Dict{Int,FieldGrid} as own types
+* Custom field containers -- analogous to NN tensors, stores residuals
