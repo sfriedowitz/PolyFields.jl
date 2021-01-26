@@ -42,7 +42,7 @@ function isconverged(ferr, ftol, serr, stol, vcell = false)
 		fconverged = true
 		if vcell
 			if serr > stol
-				sconverged = true
+				sconverged = false
 			end
 		end
 	end

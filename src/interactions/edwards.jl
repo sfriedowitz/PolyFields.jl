@@ -4,7 +4,7 @@
 An interaction representing an Edward's excluded volume interaction between like-species.
 
 The interaction energy is of the form:
-``H = ∑_i u_i ∫dr ϕ_i^2(r)``
+``H = (1/2) ∑_i u_i ∫dr ϕ_i^2(r)``
 """
 mutable struct EdwardsInteraction <: AbstractInteraction
     mids   :: Set{Int}
