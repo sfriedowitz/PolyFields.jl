@@ -16,12 +16,36 @@ The basic structs required for a field-theoretic simulation can be created as fo
 
 ```julia
 using PolyFields
+
+# Number of grid-points in x/y/z dimensions
+dims = (64, 1, 1);
+
+# Unit cell for 1D system
+cell = UnitCell(1, :lamellar, 10.0); 
+
+# Create monomers, which represent a distinct chemical type
+amon = Monomer(; id = 1, vol = 1.0, charge = 0.0);
+bmon = Monomer(; id = 2, vol = 1.0, charge = 0.0);
+
+# Create a diblock copolymer species
+# Chain structure: N = 100, fA = 0.5, bA = bB = 1.0, Ns = 100
+chain = Diblock(amon, bmon, 100, 0.5, 1.0, 1.0, 100);
+
+# Create a Flory-Huggins interaction
+itx = FloryInteraction();
+set_interaction!(itx, amon, bmon, 0.2)
+
+# Create a system to hold all the pieces
+sys = FieldSystem(dims, cell; monomers = [amon, bmon], ensemble = Canonical);
+add_species!(sys, chain)
+add_interaction!(sys, itx)
+
+# Initialize the fields randomly with a scaling factor of 0.1
+fieldinit!(sys; scale = 0.1)
 ```
 
 ## TODO
 
 * Add plotting tools for system and field output
-* Fix variable cell updater
-* Revamp constructors for unit cell class
 * GCE performance and stability
 * Add FDDD2 crystal systems, more generic format for basis construction
