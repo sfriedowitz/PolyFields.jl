@@ -54,5 +54,5 @@ end
 
 function scfstress(point::Point)
 	@assert !isnothing(point.system)
-	return zeros(nparams(sys.cell))
+	return zeros(nparams(point.system.cell))
 end

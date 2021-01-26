@@ -69,8 +69,8 @@ function energy_bulk(itx::FloryInteraction)
         if hasmonomer(sys, alpha) && hasmonomer(sys, beta)
             va = monomers[alpha].vol
             vb = monomers[beta].vol
-            rho_alpha = sys.density_bulk[alpha]
-            rho_beta = sys.density_bulk[beta]
+            rho_alpha = sys.monomer_fracs[alpha]
+            rho_beta = sys.monomer_fracs[beta]
 
             energy += chi * (rho_alpha / va) * (rho_beta / vb)
         end

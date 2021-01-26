@@ -60,7 +60,7 @@ function energy_bulk(itx::EdwardsInteraction)
         if hasmonomer(sys, mid)
             u = itx.uvals[mid]
             v = sys.monomers[mid].vol
-            rho = sys.density_bulk[mid]
+            rho = sys.monomer_fracs[mid]
 
             energy += (u/2)*(rho/v)^2
         end

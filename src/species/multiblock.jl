@@ -84,7 +84,7 @@ function Base.show(io::IO, chain::Multiblock)
     elseif nblocks(chain) == 2
         @printf(io, "Diblock(mids = %s, N = %d, f = [%.3f, %.3f])", chain.mids, chain.N, chain.f_block[1], chain.f_block[2])
     else
-        @printf(io, "Multiblock(%d blocks, %d monomers, N = %d)", num_monomers(chain), nblocks(chain), chain.N)
+        @printf(io, "Multiblock(%d blocks, %d monomers, N = %d)", nmonomers(chain), nblocks(chain), chain.N)
     end
 end
 

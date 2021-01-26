@@ -81,7 +81,9 @@ SCFTResults
 
 ## TODO
 
-* Add test set for core components of package
 * Add plotting tools for system and field output
+* AndersonUpdater may be bugged for overrunning -- figure it out
+* Add species without adding monomers beforehand?
 * GCE performance and stability (may not work currently)
 * Add FDDD2 crystal systems, more generic format for basis construction
+* Codify field containers -- FieldGrid and Dict{Int,FieldGrid} as own types
