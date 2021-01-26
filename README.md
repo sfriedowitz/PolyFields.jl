@@ -54,11 +54,24 @@ opts = SCFTOptions(nsteps = 1500, nsout = 100, ftol = 1e-4, stol = 1e-4);
 # Anderson mixing field updater, with a history size of 10 previous configurations
 updater = AndersonUpdater(; nhist = 10);
 
-# Variable cell implementation. Update cell every 5 SCFT steps
-domain = DomainUpdater(; nskip = 5);
+# Variable cell implementation. Update cell every 5 SCFT steps, and perform 20 iterations
+domain = DomainUpdater(; nskip = 5, nper = 20);
 
 # Run the SCFT simulation
 scft!(sys, updater; domain = domain, opts = opts)
+Step (0     /  1500): ferr = 2.675499e+00, fhelm = 8.46080e-02
+Updating cell dimensions: serr = 3.85896e-03
+Step (10    /  1500): ferr = 3.178666e-01, fhelm = 8.11966e-02
+Updating cell dimensions: serr = 2.63740e-04
+Step (20    /  1500): ferr = 1.383014e-02, fhelm = 7.98100e-02
+Updating cell dimensions: serr = 1.35652e-04
+Step (30    /  1500): ferr = 3.056864e-02, fhelm = 8.07546e-02
+Updating cell dimensions: serr = 3.80441e-05
+Step (40    /  1500): ferr = 4.651606e-02, fhelm = 8.09580e-02
+Updating cell dimensions: serr = 1.23038e-05
+Step (50    /  1500): ferr = 5.035081e-02, fhelm = 8.12200e-02
+Converged @ step = 55: ferr = 7.174001e-06, fhelm = 8.12299e-02
+Converged cell parameters: [16.516666566336966]
 ```
 
 ## TODO

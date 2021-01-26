@@ -40,10 +40,10 @@ function isconverged(ferr, ftol, serr, stol, vcell = false)
 	sconverged = true
 	if ferr < ftol
 		fconverged = true
-		if vcell && serr < stol
-			sconverged = true
-		else
-			sconverged = false
+		if vcell
+			if serr > stol
+				sconverged = true
+			end
 		end
 	end
 	return fconverged && sconverged
