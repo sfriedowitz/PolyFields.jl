@@ -81,6 +81,7 @@ SCFTResults
 
 ## TODO
 
+* Add test set for core components of package
 * Add plotting tools for system and field output
-* GCE performance and stability
+* GCE performance and stability (may not work currently)
 * Add FDDD2 crystal systems, more generic format for basis construction
