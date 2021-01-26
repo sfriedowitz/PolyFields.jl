@@ -12,7 +12,7 @@ Implementation of full field-theoretic simultions (FTS) via complex Langevin sam
 ## Usage
 
 The PolyFields package is amenable for use in an interactive workspace environment.
-The basic structs required for a field-theoretic simulation can be created as follows:
+The basic objects required for a field-theoretic simulation can be created as follows:
 
 ```julia
 using PolyFields
@@ -27,21 +27,38 @@ cell = UnitCell(1, :lamellar, 10.0);
 amon = Monomer(; id = 1, vol = 1.0, charge = 0.0);
 bmon = Monomer(; id = 2, vol = 1.0, charge = 0.0);
 
-# Create a diblock copolymer species
-# Chain structure: N = 100, fA = 0.5, bA = bB = 1.0, Ns = 100
+# Create a diblock copolymer species with: N = 100, fA = 0.5, bA = bB = 1.0, Ns = 100
 chain = Diblock(amon, bmon, 100, 0.5, 1.0, 1.0, 100);
 
 # Create a Flory-Huggins interaction
 itx = FloryInteraction();
-set_interaction!(itx, amon, bmon, 0.2)
+set_interaction!(itx, amon, bmon, 0.2);
 
 # Create a system to hold all the pieces
 sys = FieldSystem(dims, cell; monomers = [amon, bmon], ensemble = Canonical);
-add_species!(sys, chain)
-add_interaction!(sys, itx)
+add_species!(sys, chain);
+add_interaction!(sys, itx);
 
 # Initialize the fields randomly with a scaling factor of 0.1
 fieldinit!(sys; scale = 0.1)
+```
+
+Then, after creating a system and adding the appropriate components, we can run an SCFT calculation.
+This is done by specifying an `AbstractFieldUpdater` to relax the field configurations,
+and optionally the cell configurations as well.
+
+```julia
+# Runtime options for SCFT
+opts = SCFTOptions(nsteps = 1500, nsout = 100, ftol = 1e-4, stol = 1e-4);
+
+# Anderson mixing field updater, with a history size of 10 previous configurations
+updater = AndersonUpdater(; nhist = 10);
+
+# Variable cell implementation. Update cell every 5 SCFT steps
+domain = DomainUpdater(; nskip = 5);
+
+# Run the SCFT simulation
+scft!(sys, updater; domain = domain, opts = opts)
 ```
 
 ## TODO
